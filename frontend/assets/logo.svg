@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 220">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d9b45a"/><stop offset="1" stop-color="#f6e4a4"/></linearGradient></defs>
+  <circle cx="110" cy="110" r="103" fill="#0b1f36" stroke="#d9b45a" stroke-width="5"/>
+  <path d="M62 152C38 140 25 119 24 91c22 4 39 16 50 34" fill="none" stroke="#d9b45a" stroke-width="7" stroke-linecap="round"/>
+  <path d="M158 152c24-12 37-33 38-61-22 4-39 16-50 34" fill="none" stroke="#d9b45a" stroke-width="7" stroke-linecap="round"/>
+  <path d="M110 46l45 22v45c0 31-20 50-45 62-25-12-45-31-45-62V68z" fill="url(#g)" stroke="#fff1bb" stroke-width="4"/>
+  <path d="M78 94h64v10H78zM91 79h38v9H91z" fill="#0b1f36"/><text x="110" y="126" text-anchor="middle" font-family="Arial" font-size="27" font-weight="800" fill="#0b1f36">AJV</text>
+</svg>

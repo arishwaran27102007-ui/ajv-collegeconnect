@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#081b2f">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AJV College">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <title>AJV College of Engineering | CollegeConnect</title>
+  <link rel="icon" href="/assets/college-logo.png">
+  <link rel="stylesheet" href="/assets/style.css">
+</head>
+
+<body>
+  <div id="toast"></div>
+  <header class="topbar">
+    <div class="brand" onclick="showPage('home')">
+      <img src="/assets/college-logo.png" class="brand-logo" alt="AJV College Logo">
+      <div>
+        <div class="brand-name">AJV College of Engineering</div>
+        <div class="brand-sub">CollegeConnect • Student &amp; Staff Portal</div>
+      </div>
+    </div>
+    <nav id="nav"></nav>
+    <button id="installAppBtn" class="install-app-btn" type="button" hidden>📲 Install App</button>
+  </header>
+  <main id="app"></main>
+  <dialog id="modalDialog"></dialog>
+  <footer>
+    <div>
+      <b>AJV College of Engineering</b>
+      <span>Autonomous Institution • NAAC 'A+' Accredited • Secure Academic Portal</span>
+    </div>
+    <span>&copy; 2026 AJV CollegeConnect</span>
+  </footer>
+  <script src="/assets/app.js"></script>
+  <script src="/assets/pwa.js"></script>
+</body>
+
+</html>
