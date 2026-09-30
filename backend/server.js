@@ -35,19 +35,21 @@ function getClientIp(req) {
   return raw.replace(/^::ffff:/, "").trim();
 }
 
-// IP / Host Authorization for Admin Console (shows on 10.43.120.56 / localhost, hides on other networks/domains)
+// IP / Host Authorization for Admin Console (shows on Render, 10.43.120.56 / localhost, LAN)
 function isAuthorizedAdminIP(req) {
   const clientIp = getClientIp(req);
   const host = (req.headers.host || "").split(":")[0].trim();
   const adminSecret = req.headers["x-admin-key"] || req.query.admin_key;
 
-  // Secret bypass key for owner when connecting remotely
-  if (adminSecret && adminSecret === "ajv-admin-secure-2026") {
+  // Secret bypass key for owner when connecting remotely on Render or mobile
+  if (adminSecret && (adminSecret === "ajv-admin-secure-2026" || adminSecret === "Admin@123" || adminSecret === "ajv2026")) {
     return true;
   }
 
-  // Active when accessed via 10.43.120.56, localhost, or local hotspot network
+  // Active on Render, 10.43.120.56, localhost, or local hotspot network
   return (
+    Boolean(process.env.RENDER) ||
+    host.includes("onrender.com") ||
     host === "10.43.120.56" ||
     host === "localhost" ||
     host === "127.0.0.1" ||
@@ -59,15 +61,6 @@ function isAuthorizedAdminIP(req) {
     clientIp === "localhost"
   );
 }
-
-// Public configuration endpoint (reports if visitor is authorized to view Admin Login)
-app.get("/api/config", (req, res) => {
-  const allowed = isAuthorizedAdminIP(req);
-  res.json({
-    isAdminAllowed: allowed,
-    clientIp: getClientIp(req)
-  });
-});
 
 function publicUser(u) {
   if (!u) return null;
@@ -135,7 +128,7 @@ app.get("/api/config", (req, res) => {
     departments,
     years,
     isAdminAllowed: isAuthorizedAdminIP(req),
-    clientIp: (req.headers["x-forwarded-for"] || req.socket.remoteAddress || "").replace(/^.*:/, "")
+    clientIp: getClientIp(req)
   });
 });
 
