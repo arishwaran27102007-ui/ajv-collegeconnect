@@ -216,6 +216,12 @@ async function loadConfig() {
   } catch (e) {
     state.config = { isAdminAllowed: false };
   }
+
+  // When accessed via IP 10.43.120.56, localhost, or www.ajv.edu: show Admin login
+  const host = window.location.hostname;
+  if (host === "10.43.120.56" || host === "localhost" || host === "127.0.0.1" || host === "www.ajv.edu") {
+    state.config.isAdminAllowed = true;
+  }
 }
 
 async function login() {

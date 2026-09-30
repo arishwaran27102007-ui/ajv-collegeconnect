@@ -35,9 +35,10 @@ function getClientIp(req) {
   return raw.replace(/^::ffff:/, "").trim();
 }
 
-// IP Authorization for Admin Console (strictly restricted to authorized IP 10.43.120.56 or host machine)
+// IP / Host Authorization for Admin Console (shows on 10.43.120.56 / localhost, hides on other networks/domains)
 function isAuthorizedAdminIP(req) {
   const clientIp = getClientIp(req);
+  const host = (req.headers.host || "").split(":")[0].trim();
   const adminSecret = req.headers["x-admin-key"] || req.query.admin_key;
 
   // Secret bypass key for owner when connecting remotely
@@ -45,9 +46,14 @@ function isAuthorizedAdminIP(req) {
     return true;
   }
 
-  // Strictly check the CLIENT'S IP (NOT the Host header)
+  // Active when accessed via 10.43.120.56, localhost, or local hotspot network
   return (
+    host === "10.43.120.56" ||
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "www.ajv.edu" ||
     clientIp === "10.43.120.56" ||
+    clientIp.startsWith("10.43.120.") ||
     clientIp === "127.0.0.1" ||
     clientIp === "::1" ||
     clientIp === "localhost"
