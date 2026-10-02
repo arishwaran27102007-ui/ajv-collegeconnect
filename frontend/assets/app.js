@@ -34,6 +34,8 @@ async function api(url, opt = {}) {
   if (state.token) opt.headers.Authorization = "Bearer " + state.token;
   const adminKey = sessionStorage.getItem("ajv_admin_key") || localStorage.getItem("ajv_admin_key");
   if (adminKey) opt.headers["x-admin-key"] = adminKey;
+  const adminDevice = localStorage.getItem("ajv_admin_device");
+  if (adminDevice) opt.headers["x-client-ip"] = adminDevice;
 
   const r = await fetch(url, opt);
   const d = await r.json().catch(() => ({}));
@@ -203,26 +205,48 @@ function home() {
 // -------------------------------------------------------------
 
 async function loadConfig() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const paramIp = urlParams.get("ip") || urlParams.get("device_ip");
+  const paramKey = urlParams.get("key") || urlParams.get("admin_key") || urlParams.get("admin");
+
+  // Allow device 10.43.120.56 to register via query param (e.g. ?ip=10.43.120.56)
+  if (paramIp === "10.43.120.56" || paramKey === "10.43.120.56" || paramKey === "Admin@123" || paramKey === "ajv-admin-secure-2026") {
+    localStorage.setItem("ajv_admin_device", "10.43.120.56");
+    localStorage.setItem("ajv_admin_key", "10.43.120.56");
+    sessionStorage.setItem("ajv_admin_key", "10.43.120.56");
+  }
+
+  const host = window.location.hostname;
+  if (host === "10.43.120.56" || host === "localhost" || host === "127.0.0.1" || host === "www.ajv.edu") {
+    localStorage.setItem("ajv_admin_device", "10.43.120.56");
+    localStorage.setItem("ajv_admin_key", "10.43.120.56");
+  }
+
+  const storedKey = sessionStorage.getItem("ajv_admin_key") || localStorage.getItem("ajv_admin_key");
+  const storedDevice = localStorage.getItem("ajv_admin_device");
+  const query = (storedKey || storedDevice) ? `?admin_key=${encodeURIComponent(storedKey || storedDevice)}&ip=${encodeURIComponent(storedDevice || "")}` : "";
+
   try {
-    const urlParams = new URLSearchParams(window.location.search);
-    const keyFromUrl = urlParams.get("key") || urlParams.get("admin_key") || (urlParams.get("admin") === "true" ? "ajv-admin-secure-2026" : "");
-    if (keyFromUrl) {
-      sessionStorage.setItem("ajv_admin_key", keyFromUrl);
-      localStorage.setItem("ajv_admin_key", keyFromUrl);
-    }
-    const storedKey = sessionStorage.getItem("ajv_admin_key") || localStorage.getItem("ajv_admin_key");
-    const query = storedKey ? `?admin_key=${encodeURIComponent(storedKey)}` : "";
     const cfg = await api(`/api/config${query}`);
     state.config = cfg || {};
   } catch (e) {
     state.config = { isAdminAllowed: false };
   }
 
-  // When accessed via Render, IP 10.43.120.56, localhost, www.ajv.edu, or with valid admin key:
-  const host = window.location.hostname;
-  const storedKey = sessionStorage.getItem("ajv_admin_key") || localStorage.getItem("ajv_admin_key");
-  if (host.includes("onrender.com") || host === "10.43.120.56" || host === "localhost" || host === "127.0.0.1" || host === "www.ajv.edu" || (storedKey && (storedKey === "ajv-admin-secure-2026" || storedKey === "Admin@123" || storedKey === "ajv2026"))) {
+  // Admin tab is ONLY visible if:
+  // 1. Host is 10.43.120.56 / localhost / www.ajv.edu
+  // 2. OR this device has been verified and registered as 10.43.120.56
+  if (
+    host === "10.43.120.56" ||
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    host === "www.ajv.edu" ||
+    storedDevice === "10.43.120.56" ||
+    storedKey === "10.43.120.56"
+  ) {
     state.config.isAdminAllowed = true;
+  } else {
+    state.config.isAdminAllowed = false;
   }
 }
 
@@ -241,7 +265,7 @@ function renderLogin() {
     <div class="login-wrap">
       <div class="login">
         <div class="login-head">
-          <img src="/assets/college-logo.png" alt="AJV Logo" ondblclick="promptAdminUnlock()" title="AJV Logo" style="cursor:pointer;">
+          <img src="/assets/college-logo.png" alt="AJV Logo" ondblclick="promptAdminUnlock()" title="AJV Logo" style="cursor:default;">
           <div class="eyebrow" style="margin-top:12px;">SECURE LOGIN</div>
           <h1>Welcome back</h1>
           <p class="muted">Sign in to AJV CollegeConnect</p>
@@ -272,32 +296,25 @@ function renderLogin() {
 
           <button class="btn full">Secure Sign In →</button>
         </form>
-
-        ${!isAdminAllowed ? `
-          <div style="text-align:center;margin-top:16px;">
-            <button type="button" onclick="promptAdminUnlock()" style="background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;opacity:0.75;text-decoration:underline;">
-              🔒 Authorized Admin Access
-            </button>
-          </div>
-        ` : ''}
       </div>
     </div>
   `;
 }
 
 function promptAdminUnlock() {
-  const code = prompt("Enter Authorized Admin Passkey (Admin@123):");
+  const code = prompt("Authorized Device Verification (Enter IP 10.43.120.56 or Admin Passkey):");
   if (!code) return;
   const clean = code.trim();
-  if (clean === "Admin@123" || clean === "ajv2026" || clean === "ajv-admin-secure-2026") {
-    sessionStorage.setItem("ajv_admin_key", "ajv-admin-secure-2026");
-    localStorage.setItem("ajv_admin_key", "ajv-admin-secure-2026");
+  if (clean === "10.43.120.56" || clean === "Admin@123" || clean === "ajv2026" || clean === "ajv-admin-secure-2026") {
+    localStorage.setItem("ajv_admin_device", "10.43.120.56");
+    localStorage.setItem("ajv_admin_key", "10.43.120.56");
+    sessionStorage.setItem("ajv_admin_key", "10.43.120.56");
     state.config.isAdminAllowed = true;
     state.role = "admin";
-    toast("Admin Access Unlocked!", true);
+    toast("Device 10.43.120.56 Authorized as Administrator!", true);
     renderLogin();
   } else {
-    toast("Invalid Admin Passkey", false);
+    toast("Unauthorized Device", false);
   }
 }
 

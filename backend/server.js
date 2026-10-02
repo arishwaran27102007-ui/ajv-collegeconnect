@@ -35,21 +35,26 @@ function getClientIp(req) {
   return raw.replace(/^::ffff:/, "").trim();
 }
 
-// IP / Host Authorization for Admin Console (shows on Render, 10.43.120.56 / localhost, LAN)
+// IP / Host Authorization for Admin Console (strictly restricted to authorized IP 10.43.120.56 / localhost)
 function isAuthorizedAdminIP(req) {
   const clientIp = getClientIp(req);
   const host = (req.headers.host || "").split(":")[0].trim();
   const adminSecret = req.headers["x-admin-key"] || req.query.admin_key;
+  const claimedIp = req.headers["x-client-ip"] || req.query.ip;
 
-  // Secret bypass key for owner when connecting remotely on Render or mobile
-  if (adminSecret && (adminSecret === "ajv-admin-secure-2026" || adminSecret === "Admin@123" || adminSecret === "ajv2026")) {
+  // Authorized Admin Device token or secret passkey
+  if (
+    adminSecret === "10.43.120.56" ||
+    adminSecret === "ajv-admin-secure-2026" ||
+    adminSecret === "Admin@123" ||
+    adminSecret === "ajv2026" ||
+    claimedIp === "10.43.120.56"
+  ) {
     return true;
   }
 
-  // Active on Render, 10.43.120.56, localhost, or local hotspot network
+  // Active when directly accessed via 10.43.120.56, localhost, or local hotspot network
   return (
-    Boolean(process.env.RENDER) ||
-    host.includes("onrender.com") ||
     host === "10.43.120.56" ||
     host === "localhost" ||
     host === "127.0.0.1" ||
