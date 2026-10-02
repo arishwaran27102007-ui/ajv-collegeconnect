@@ -73,9 +73,9 @@
       "year": "I Year",
       "section": "A",
       "address": "Tiruppur, Tamil Nadu",
-      "cgpa": 8.67,
-      "overallPercentage": 83.67,
-      "attendance": 86.67,
+      "cgpa": 8.78,
+      "overallPercentage": 81.67,
+      "attendance": 85.83,
       "status": "active"
     },
     {
@@ -2204,6 +2204,107 @@
       "paymentMethod": null,
       "transactionId": null,
       "receiptNo": null
+    }
+  ],
+  "grievances": [
+    {
+      "id": 1,
+      "ticketNo": "GRV-2026-001",
+      "studentId": 3,
+      "studentName": "Ananya Kumar",
+      "registerNo": "AJVSTU001",
+      "department": "Information Technology",
+      "year": "I Year",
+      "category": "Academic / Revaluation",
+      "priority": "Normal",
+      "subject": "Request for Engineering Physics (PH3151) Answer Sheet Photocopy",
+      "description": "I scored 90 in external evaluation but was expecting 95+. Kindly grant a photocopy of the valued answer script for review with my course faculty.",
+      "status": "In Review",
+      "responseNote": "Application forwarded to Controller of Examinations. Verification in progress.",
+      "respondedBy": "Dr. Priya Faculty (FAC001)",
+      "createdAt": "2026-09-22T09:30:00.000Z",
+      "updatedAt": "2026-09-23T14:15:00.000Z"
+    },
+    {
+      "id": 2,
+      "ticketNo": "GRV-2026-002",
+      "studentId": 4,
+      "studentName": "Arishwaran J",
+      "registerNo": "AJVSTU004",
+      "department": "Information Technology",
+      "year": "II Year",
+      "category": "Fee / Payment Issue",
+      "priority": "High",
+      "subject": "Online Tuition Fee Payment Receipt Generation Confirmation",
+      "description": "Paid Semester 3 Tuition Fee through UPI. Need stamped clearance receipt for bank education loan reimbursement.",
+      "status": "Resolved",
+      "responseNote": "Fee payment verified in treasury. Official stamped receipt is now available in your Fee Payment tab for download.",
+      "respondedBy": "AJV Administrator (ADMIN001)",
+      "createdAt": "2026-09-25T11:00:00.000Z",
+      "updatedAt": "2026-09-25T16:20:00.000Z"
+    },
+    {
+      "id": 3,
+      "ticketNo": "GRV-2026-003",
+      "studentId": 3,
+      "studentName": "Ananya Kumar",
+      "registerNo": "AJVSTU001",
+      "department": "Information Technology",
+      "year": "I Year",
+      "category": "Hostel & Transport",
+      "priority": "Normal",
+      "subject": "College Route 12 Bus Pass Renewal",
+      "description": "Requesting renewal of College Route 12 (Gandhipuram to Campus) smart bus transit pass for odd semester.",
+      "status": "Open",
+      "responseNote": null,
+      "respondedBy": null,
+      "createdAt": "2026-10-01T08:45:00.000Z",
+      "updatedAt": "2026-10-01T08:45:00.000Z"
+    }
+  ],
+  "attendanceLogs": [
+    {
+      "id": 1,
+      "date": "2026-10-01",
+      "department": "Information Technology",
+      "year": "I Year",
+      "semester": 1,
+      "courseCode": "PH3151",
+      "courseName": "Engineering Physics",
+      "facultyId": 2,
+      "facultyName": "Dr. Priya Faculty",
+      "records": [
+        {
+          "studentId": 3,
+          "status": "P"
+        },
+        {
+          "studentId": 4,
+          "status": "P"
+        },
+        {
+          "studentId": 6,
+          "status": "P"
+        }
+      ],
+      "createdAt": "2026-10-01T10:00:00.000Z"
+    },
+    {
+      "id": 2,
+      "date": "2026-10-02",
+      "semester": null,
+      "facultyName": "Dr. R. Ramanathan",
+      "records": [
+        {
+          "studentId": 3,
+          "status": "P"
+        },
+        {
+          "studentId": 4,
+          "status": "A"
+        }
+      ],
+      "createdAt": "2026-10-02T09:15:08.669Z"
     }
   ]
 }

@@ -1,4 +1,4 @@
-const CACHE_NAME = "ajv-collegeconnect-pwa-v3";
+const CACHE_NAME = "ajv-collegeconnect-pwa-v4";
 
 const APP_SHELL = [
   "/",

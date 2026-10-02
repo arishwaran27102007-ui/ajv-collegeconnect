@@ -70,6 +70,8 @@ function loadJsonDb() {
           "8": { isPublished: false, publishedAt: null, publishedBy: null }
         };
       }
+      if (!jsonDb.grievances) jsonDb.grievances = [];
+      if (!jsonDb.attendanceLogs) jsonDb.attendanceLogs = [];
       return jsonDb;
     } catch (e) {
       console.error("[Database] Failed to read db.json, creating initial backup:", e.message);
@@ -1449,6 +1451,260 @@ async function getAllFeesSummary() {
   };
 }
 
+// -------------------------------------------------------------
+// Grievances & Service Desk
+// -------------------------------------------------------------
+
+async function getGrievances(filter = {}) {
+  loadJsonDb();
+  let list = jsonDb.grievances || [];
+  if (filter.studentId) {
+    list = list.filter(g => Number(g.studentId) === Number(filter.studentId));
+  }
+  if (filter.status && filter.status !== "All") {
+    list = list.filter(g => g.status.toLowerCase() === filter.status.toLowerCase());
+  }
+  return list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+}
+
+async function createGrievance(data) {
+  loadJsonDb();
+  if (!jsonDb.grievances) jsonDb.grievances = [];
+  const id = jsonDb.grievances.length > 0 ? Math.max(...jsonDb.grievances.map(g => g.id || 0)) + 1 : 1;
+  const ticketNo = `GRV-2026-${String(id).padStart(3, "0")}`;
+  const record = {
+    id,
+    ticketNo,
+    studentId: Number(data.studentId),
+    studentName: data.studentName,
+    registerNo: data.registerNo,
+    department: data.department,
+    year: data.year,
+    category: data.category || "General",
+    priority: data.priority || "Normal",
+    subject: data.subject,
+    description: data.description,
+    status: "Open",
+    responseNote: null,
+    respondedBy: null,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  };
+  jsonDb.grievances.push(record);
+  saveJsonDb();
+  return record;
+}
+
+async function updateGrievance(id, updateData) {
+  loadJsonDb();
+  const g = (jsonDb.grievances || []).find(x => x.id === Number(id));
+  if (!g) throw Error("Grievance ticket not found");
+  if (updateData.status) g.status = updateData.status;
+  if (updateData.responseNote !== undefined) g.responseNote = updateData.responseNote;
+  if (updateData.respondedBy) g.respondedBy = updateData.respondedBy;
+  g.updatedAt = new Date().toISOString();
+  saveJsonDb();
+  return g;
+}
+
+// -------------------------------------------------------------
+// Daily Subject Attendance Tracking
+// -------------------------------------------------------------
+
+async function saveAttendanceSession(data) {
+  loadJsonDb();
+  if (!jsonDb.attendanceLogs) jsonDb.attendanceLogs = [];
+  const id = jsonDb.attendanceLogs.length > 0 ? Math.max(...jsonDb.attendanceLogs.map(a => a.id || 0)) + 1 : 1;
+  const session = {
+    id,
+    date: data.date || new Date().toISOString().split("T")[0],
+    department: data.department,
+    year: data.year,
+    semester: Number(data.semester),
+    courseCode: data.courseCode,
+    courseName: data.courseName,
+    facultyId: data.facultyId,
+    facultyName: data.facultyName,
+    records: data.records || [],
+    createdAt: new Date().toISOString()
+  };
+  jsonDb.attendanceLogs.push(session);
+
+  // Update student attendance records
+  const course = (jsonDb.courses || []).find(c => c.code === data.courseCode || c.id === Number(data.courseId));
+  if (course) {
+    for (const r of session.records) {
+      const studentId = Number(r.studentId);
+      const enrollment = (jsonDb.enrollments || []).find(e => e.studentId === studentId && (e.courseId === course.id || e.courseCode === course.code));
+      if (enrollment) {
+        const pastSessions = jsonDb.attendanceLogs.filter(s => s.courseCode === course.code && s.records.some(rec => rec.studentId === studentId));
+        const total = pastSessions.length;
+        const attended = pastSessions.filter(s => {
+          const rec = s.records.find(rc => rc.studentId === studentId);
+          return rec && (rec.status === "P" || rec.status === "OD");
+        }).length;
+        if (total > 0) {
+          enrollment.attendance = Math.round((attended / total) * 100);
+        }
+      }
+      await recalculateAcademic(studentId);
+    }
+  }
+
+  saveJsonDb();
+  return session;
+}
+
+async function getStudentSubjectAttendance(studentId, semester) {
+  loadJsonDb();
+  let student = null;
+  const numId = Number(studentId);
+  if (!isNaN(numId) && numId > 0) {
+    student = await findUserById(numId);
+  }
+  if (!student) {
+    const clean = String(studentId || "").trim().toLowerCase();
+    student = jsonDb.users.find(u => (u.loginId && u.loginId.toLowerCase() === clean) || (u.id === numId));
+  }
+  const sId = student ? student.id : numId;
+
+  let sem = Number(semester);
+  if (!sem || isNaN(sem)) {
+    if (student) {
+      if (student.year === "I Year") sem = 2;
+      else if (student.year === "II Year") sem = 4;
+      else if (student.year === "III Year") sem = 6;
+      else sem = 8;
+    } else {
+      sem = 2;
+    }
+  }
+
+  const courses = (jsonDb.courses || []).filter(c => c.semester === sem);
+  const enrollments = (jsonDb.enrollments || []).filter(e => e.studentId === sId && e.semester === sem);
+
+  return courses.map(course => {
+    const enr = enrollments.find(e => e.courseId === course.id);
+    const att = enr ? Number(enr.attendance || 85) : 85;
+    const totalClasses = 45;
+    const attendedClasses = Math.round((att / 100) * totalClasses);
+    return {
+      courseId: course.id,
+      code: course.code,
+      name: course.name,
+      credits: course.credits || 3,
+      semester: course.semester,
+      totalClasses,
+      attendedClasses,
+      percentage: att,
+      status: att >= 85 ? "Safe" : (att >= 75 ? "Normal" : "Shortage")
+    };
+  });
+}
+
+// -------------------------------------------------------------
+// Exam Hall Ticket & Clearance
+// -------------------------------------------------------------
+
+async function getHallTicket(studentId, semester = null) {
+  loadJsonDb();
+  let student = null;
+  const numId = Number(studentId);
+  if (!isNaN(numId) && numId > 0) {
+    student = await findUserById(numId);
+  }
+  if (!student) {
+    const clean = String(studentId || "").trim().toLowerCase();
+    student = jsonDb.users.find(u => (u.loginId && u.loginId.toLowerCase() === clean) || (u.id === numId));
+  }
+  if (!student) throw Error("Student record not found");
+  const sId = student.id;
+
+  let targetSem = Number(semester);
+  if (!targetSem || targetSem < 1 || targetSem > 8) {
+    if (student.year === "I Year") targetSem = 2;
+    else if (student.year === "II Year") targetSem = 4;
+    else if (student.year === "III Year") targetSem = 6;
+    else targetSem = 8;
+  }
+
+  const overallAttendance = Number(student.attendance || 0);
+  const isAttendanceEligible = overallAttendance >= 75.0;
+
+  const fees = (jsonDb.fees || []).filter(f => f.studentId === sId);
+  const pendingFees = fees.filter(f => f.status === "DUE");
+  const totalDue = pendingFees.reduce((sum, f) => sum + (f.amount - (f.paidAmount || 0)), 0);
+  const isFeeEligible = totalDue === 0;
+
+  const isEligible = isAttendanceEligible && isFeeEligible;
+
+  const courses = (jsonDb.courses || []).filter(c => c.semester === targetSem);
+  const examDates = [
+    { date: "2026-11-16", session: "FN (10:00 AM - 01:00 PM)" },
+    { date: "2026-11-19", session: "FN (10:00 AM - 01:00 PM)" },
+    { date: "2026-11-22", session: "FN (10:00 AM - 01:00 PM)" },
+    { date: "2026-11-25", session: "FN (10:00 AM - 01:00 PM)" },
+    { date: "2026-11-28", session: "FN (10:00 AM - 01:00 PM)" },
+    { date: "2026-12-02", session: "FN (10:00 AM - 01:00 PM)" }
+  ];
+
+  const timetable = courses.map((c, i) => ({
+    courseCode: c.code,
+    courseName: c.name,
+    credits: c.credits || 3,
+    date: examDates[i % examDates.length].date,
+    session: examDates[i % examDates.length].session
+  }));
+
+  const deskNo = `DESK-${(student.department || "IT").slice(0, 2).toUpperCase()}-${String(student.id).padStart(2, "0")}`;
+  const examHall = `Exam Complex Hall B-${200 + (student.id % 5)}`;
+
+  return {
+    isEligible,
+    eligibilityReasons: {
+      attendance: {
+        current: overallAttendance,
+        required: 75.0,
+        cleared: isAttendanceEligible,
+        message: isAttendanceEligible
+          ? `Cleared: ${overallAttendance}% attendance qualifies for university examination.`
+          : `Deficit: ${overallAttendance}% attendance is below the minimum threshold (75.0%).`
+      },
+      fees: {
+        totalDue,
+        pendingCount: pendingFees.length,
+        cleared: isFeeEligible,
+        message: isFeeEligible
+          ? "Cleared: All institutional, examination, and tuition fees are fully settled."
+          : `Deficit: ₹${totalDue.toLocaleString('en-IN')} pending in college treasury.`
+      }
+    },
+    student: {
+      id: student.id,
+      fullName: student.fullName,
+      loginId: student.loginId,
+      registerNo: student.registerNo || student.loginId,
+      department: student.department,
+      year: student.year,
+      section: student.section || "A",
+      parentName: student.parentName,
+      dob: student.dob,
+      phone: student.phone
+    },
+    hallTicketDetails: {
+      academicYear: "2025-2026 (Even Semester)",
+      semester: targetSem,
+      examCenter: "AJV College of Engineering (Center Code: 7102)",
+      hallNumber: examHall,
+      seatNumber: deskNo,
+      issueDate: "2026-10-15",
+      verificationCode: `HT-AJV-${student.loginId}-SEM${targetSem}`,
+      institutionSealCode: "AJV-EXAM-COE-OFFICIAL-2026",
+      timetable
+    }
+  };
+}
+
 module.exports = {
   initDb,
   getHealth,
@@ -1484,5 +1740,11 @@ module.exports = {
   payAllStudentFees,
   getFeeReceipt,
   getAllFeesSummary,
+  getGrievances,
+  createGrievance,
+  updateGrievance,
+  saveAttendanceSession,
+  getStudentSubjectAttendance,
+  getHallTicket,
   getDbMode: () => dbMode
 };

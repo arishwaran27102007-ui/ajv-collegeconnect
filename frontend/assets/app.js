@@ -78,8 +78,9 @@ function layoutNav() {
   if (state.user.role === "admin") {
     nav.innerHTML = `
       <button onclick="showPage('dashboard')">Dashboard</button>
-      <button onclick="openPublishResultsCenter()" style="color:var(--gold);font-weight:700;">📢 Publish Results</button>
-      <button onclick="showPage('fees')">💳 Fee Collections</button>
+      <button onclick="openPublishResultsCenter()" style="color:var(--gold);font-weight:700;">📢 Results Center</button>
+      <button onclick="showPage('fees')">💳 Fee Ledger</button>
+      <button onclick="openGrievancesPortal()">💬 Helpdesk</button>
       <button onclick="loadFaculty()">Faculty</button>
       <button onclick="loadStudents()">Students</button>
       <button onclick="showPage('profile')">Profile</button>
@@ -88,8 +89,10 @@ function layoutNav() {
   } else if (state.user.role === "staff") {
     nav.innerHTML = `
       <button onclick="showPage('dashboard')">Dashboard</button>
-      <button onclick="openFacultyResultsView()" style="color:var(--gold);font-weight:700;">🎓 Results &amp; Marksheets</button>
+      <button onclick="openFacultyAttendanceMarker()" style="color:#0891b2;font-weight:700;">📋 Attendance Marker</button>
+      <button onclick="openFacultyResultsView()" style="color:var(--gold);font-weight:700;">🎓 Marksheets</button>
       <button onclick="showPage('fees')">💳 Student Fees</button>
+      <button onclick="openGrievancesPortal()">💬 Helpdesk</button>
       <button onclick="loadStudents()">Students</button>
       <button onclick="showPage('profile')">Profile</button>
       <button onclick="logout()">Logout</button>
@@ -97,8 +100,11 @@ function layoutNav() {
   } else {
     nav.innerHTML = `
       <button onclick="showPage('dashboard')">Dashboard</button>
-      <button onclick="showPage('results')" style="color:var(--gold);font-weight:700;">🎓 Semester Marksheets</button>
+      <button onclick="showPage('results')" style="color:var(--gold);font-weight:700;">🎓 Marksheets</button>
+      <button onclick="openOfficialHallTicket()" style="color:#2563eb;font-weight:700;">🎫 Hall Ticket</button>
+      <button onclick="openDigitalStudentIdCard()" style="font-weight:700;">🪪 Smart ID</button>
       <button onclick="showPage('fees')" style="color:#10b981;font-weight:700;">💳 Fee Payment</button>
+      <button onclick="openGrievancesPortal()">💬 Helpdesk</button>
       <button onclick="showPage('profile')">Profile</button>
       <button onclick="logout()">Logout</button>
     `;
@@ -810,10 +816,13 @@ async function studentDashboard(initialSem = 1) {
             <h1>Welcome, ${esc(d.profile.fullName)} 👋</h1>
             <p class="muted">${esc(d.profile.loginId)} • ${esc(d.profile.email || "Pending Email")} • ${esc(d.profile.department)} • ${esc(d.profile.year)} Sec ${esc(d.profile.section || "A")}</p>
           </div>
-          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-            <button class="btn ${feeDueAmount > 0 ? 'gold' : 'secondary'}" onclick="showPage('fees')">💳 Fee Payment &amp; Receipts ${feeDueAmount > 0 ? `(₹${feeDueAmount.toLocaleString('en-IN')} Due)` : '✓'}</button>
-            <button class="btn secondary" onclick="openOfficialMarksheet(state.studentSelectedSem)">🎓 View Official Marksheet</button>
-            <span class="status">● Enrolled Student</span>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button class="btn gold" onclick="openDigitalStudentIdCard()">🪪 Smart ID Card</button>
+            <button class="btn secondary" onclick="openOfficialHallTicket()" style="color:#2563eb;font-weight:700;">🎫 Exam Hall Ticket</button>
+            <button class="btn secondary" onclick="openStudentAttendanceBreakdown()">📋 Subject Attendance</button>
+            <button class="btn ${feeDueAmount > 0 ? 'gold' : 'secondary'}" onclick="showPage('fees')">💳 Fees ${feeDueAmount > 0 ? `(₹${feeDueAmount.toLocaleString('en-IN')})` : '✓'}</button>
+            <button class="btn secondary" onclick="openOfficialMarksheet(state.studentSelectedSem)">🎓 Marksheet</button>
+            <button class="btn secondary" onclick="openGrievancesPortal()">💬 Helpdesk</button>
           </div>
         </div>
 
@@ -1403,8 +1412,10 @@ async function staffDashboard() {
             <h1>Academic Control Center</h1>
             <p class="muted">Review student applications, enter marks, and publish bulletins.</p>
           </div>
-          <div style="display:flex;gap:10px;">
-            <button class="btn gold" onclick="openFacultyResultsView()">🎓 Results &amp; Marksheets</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn primary" style="background:#0891b2;color:#fff;" onclick="openFacultyAttendanceMarker()">📋 Attendance Marker</button>
+            <button class="btn gold" onclick="openFacultyResultsView()">🎓 Marksheets</button>
+            <button class="btn secondary" onclick="openGrievancesPortal()">💬 Helpdesk</button>
             <button class="btn secondary" onclick="openAnnouncementModal()">📢 Post Bulletin</button>
             <button class="btn" onclick="loadStudents()">Student Directory →</button>
           </div>
@@ -1496,9 +1507,11 @@ async function adminDashboard() {
             <h1>Administrator Control Center</h1>
             <p class="muted">Authorized Workstation (${window.location.hostname}). Full protection and credential governance.</p>
           </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <button class="btn gold" onclick="openPublishResultsCenter()">📢 Publish Results (8 Semesters)</button>
-            <button class="btn secondary" onclick="showPage('fees')">💳 Fee Collections Ledger</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn gold" onclick="openPublishResultsCenter()">📢 Results Center</button>
+            <button class="btn secondary" onclick="showPage('fees')">💳 Fee Ledger</button>
+            <button class="btn secondary" onclick="exportDataCsv('/api/admin/export/students', 'AJV_Student_Master_Register.csv')">📥 Export Master CSV</button>
+            <button class="btn secondary" onclick="openGrievancesPortal()">💬 Helpdesk</button>
             <button class="btn secondary" onclick="openIssueFacultyModal()">+ Issue Faculty ID</button>
             <button class="btn secondary" onclick="openAnnouncementModal()">📢 Post Bulletin</button>
           </div>
@@ -1597,7 +1610,8 @@ async function openPublishResultsCenter() {
             <h1>Academic Results Publication &amp; Governance Center</h1>
             <p class="muted">Authorize, audit, and broadcast semester examination results across all 4 Academic Years &amp; 8 Semesters. Inspect batch pass percentages, valuation readiness, and official sealed marksheets.</p>
           </div>
-          <div style="display:flex;gap:10px;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn gold" onclick="exportDataCsv('/api/admin/export/broadsheet/' + (state.selectedPublishSemester || 1), 'AJV_Semester_' + (state.selectedPublishSemester || 1) + '_TMR_Broadsheet.csv')">📥 Export Broadsheet CSV</button>
             <button class="btn secondary" onclick="showPage('dashboard')">← Admin Dashboard</button>
           </div>
         </div>
@@ -2606,8 +2620,10 @@ function studentTable(rows, isAdminView = false) {
               ${s.attendance < 75 && s.attendance > 0 ? `<span class="badge-shortage">Low</span>` : ''}
             </td>
             <td><span class="pill ${s.status === 'active' ? 'grade-Ap' : 'grade-RA'}">${esc(s.status)}</span></td>
-            <td>
-              <button class="btn secondary mini" onclick="viewStudent(${s.id})">Academic Record →</button>
+            <td style="white-space:nowrap;">
+              <button class="btn secondary mini" onclick="viewStudent(${s.id})">Record →</button>
+              <button class="btn secondary mini" onclick="openDigitalStudentIdCard(${s.id})" title="Print PVC Smart ID Card">🪪 ID</button>
+              <button class="btn secondary mini" onclick="openOfficialHallTicket(null, ${s.id})" title="Exam Hall Ticket & Clearance">🎫 Hall Ticket</button>
               ${isAdminView ? `<button class="btn mini danger" onclick="adminDeleteStudent(${s.id}, '${esc(s.fullName)}')">Delete</button>` : ''}
             </td>
           </tr>
@@ -3772,9 +3788,10 @@ function renderAdminFeesOverview() {
           <h1>College Fee Collections Overview 💳</h1>
           <p class="muted">Monitoring all fee categories: Tuition, Exams, Hostel, Transport, Caution Deposits, &amp; Placement.</p>
         </div>
-        <div style="display:flex;gap:10px;align-items:center;">
-          <button class="btn secondary" onclick="showPage('dashboard')">← Back to Dashboard</button>
-          <button class="btn gold" onclick="openAdminFeesOverview()">🔄 Refresh Ledger</button>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <button class="btn gold" onclick="exportDataCsv('/api/admin/export/fees', 'AJV_Fee_Collections_Register.csv')">📥 Export Fee Register CSV</button>
+          <button class="btn secondary" onclick="showPage('dashboard')">← Dashboard</button>
+          <button class="btn secondary" onclick="openAdminFeesOverview()">🔄 Refresh</button>
         </div>
       </div>
 
@@ -4017,6 +4034,832 @@ async function adminCollectStudentFee(studentId, feeId, feeTitle, amount) {
 }
 
 // -------------------------------------------------------------
+// 1-Click CSV/Excel Data Exporter
+// -------------------------------------------------------------
+
+async function exportDataCsv(endpointUrl, filename) {
+  try {
+    toast(`Preparing ${filename}...`, true);
+    const headers = {};
+    if (state.token) headers.Authorization = "Bearer " + state.token;
+    const res = await fetch(endpointUrl, { headers });
+    if (!res.ok) throw Error("Failed to export data");
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    toast(`✓ Downloaded ${filename}`, true);
+  } catch (err) {
+    toast(err.message, false);
+  }
+}
+
+// -------------------------------------------------------------
+// Digital Student Smart ID Card (Printable PVC Format)
+// -------------------------------------------------------------
+
+async function openDigitalStudentIdCard(targetStudentId = null) {
+  let s = state.user;
+  if (targetStudentId && state.user.role !== "student") {
+    try {
+      s = await api(`/api/staff/students/${targetStudentId}`);
+    } catch (_) {}
+  }
+  if (!s) return toast("Student record not found", false);
+
+  const regNo = s.registerNo || s.loginId;
+  const dept = s.department || "Information Technology";
+  const year = s.year || "I Year";
+  const yearBatchMap = {
+    "I Year": { batch: "2025 - 2029", valid: "MAY 2029" },
+    "II Year": { batch: "2024 - 2028", valid: "MAY 2028" },
+    "III Year": { batch: "2023 - 2027", valid: "MAY 2027" },
+    "IV Year": { batch: "2022 - 2026", valid: "MAY 2026" }
+  };
+  const batchInfo = yearBatchMap[year] || { batch: "2024 - 2028", valid: "MAY 2028" };
+  const initials = s.fullName.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase();
+
+  modalDialog.innerHTML = `
+    <div class="modal-header no-print">
+      <div>
+        <div class="eyebrow" style="color:var(--gold);">OFFICIAL DIGITAL CREDENTIAL</div>
+        <h3 style="margin:2px 0;">Student Smart PVC ID Card</h3>
+        <p class="muted" style="margin:0;font-size:12px;">ISO/IEC 7810 ID-1 standard format • RFID &amp; Barcode Enabled</p>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn mini gold" onclick="window.print()">🖨️ Print PVC Card</button>
+        <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
+      </div>
+    </div>
+
+    <div class="modal-body" style="padding:16px;">
+      <div class="idcard-preview-wrap">
+        <!-- FRONT SIDE -->
+        <div class="idcard">
+          <div class="idcard-front-header">
+            <img src="/assets/college-logo.png" alt="AJV">
+            <h3>AJV COLLEGE OF ENGINEERING</h3>
+            <span>AUTONOMOUS • ANNA UNIVERSITY AFFILIATED</span>
+          </div>
+          <div class="idcard-body">
+            <div class="idcard-chip-row">
+              <div class="idcard-emv-chip"></div>
+              <div class="idcard-hologram">✨ SECURE RFID</div>
+            </div>
+
+            <div class="idcard-photo-box">
+              <span>${initials}</span>
+            </div>
+
+            <h4 class="idcard-name">${esc(s.fullName)}</h4>
+            <div class="idcard-regno">${esc(regNo)}</div>
+
+            <div class="idcard-details-grid">
+              <div><span>Course:</span> <b>B.Tech / B.E.</b></div>
+              <div><span>Department:</span> <b>${esc(dept)}</b></div>
+              <div><span>Class &amp; Sec:</span> <b>${esc(year)} • Sec ${esc(s.section || 'A')}</b></div>
+              <div><span>Batch:</span> <b>${batchInfo.batch}</b></div>
+              <div><span>Valid Upto:</span> <b>${batchInfo.valid}</b></div>
+            </div>
+
+            <div class="idcard-barcode">||| | |||| | ||| |||| | |||</div>
+            <div style="font-size:9px;color:#64748b;font-family:monospace;margin-top:2px;">*${esc(regNo)}*</div>
+
+            <div class="idcard-footer-sigs">
+              <div>Authorized Signatory</div>
+              <div style="font-weight:700;color:var(--navy);">Dr. A. Joseph, Principal</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- BACK SIDE -->
+        <div class="idcard idcard-back">
+          <div class="idcard-back-header">
+            EMERGENCY &amp; INSTITUTIONAL INFORMATION
+          </div>
+          <div class="idcard-back-body">
+            <div style="margin-bottom:8px;">
+              <span style="color:#64748b;font-size:10px;display:block;">PARENT / GUARDIAN:</span>
+              <b style="color:var(--navy);font-size:12px;">${esc(s.parentName || 'R. Kumar')}</b>
+            </div>
+
+            <div style="margin-bottom:8px;">
+              <span style="color:#64748b;font-size:10px;display:block;">EMERGENCY CONTACT:</span>
+              <b style="color:var(--navy);font-size:12px;">${esc(s.phone || '+91 90000 00003')}</b>
+            </div>
+
+            <div style="margin-bottom:8px;">
+              <span style="color:#64748b;font-size:10px;display:block;">BLOOD GROUP &amp; DOB:</span>
+              <b style="color:#dc2626;font-size:12px;">B+ POSITIVE • ${s.dob || '2007-04-15'}</b>
+            </div>
+
+            <div style="margin-bottom:8px;">
+              <span style="color:#64748b;font-size:10px;display:block;">PERMANENT RESIDENCE:</span>
+              <span style="font-size:11px;color:#334155;">${esc(s.address || 'Coimbatore, Tamil Nadu, India')}</span>
+            </div>
+
+            <div class="idcard-back-qr">
+              <svg width="80" height="80" viewBox="0 0 100 100" style="background:#fff;padding:4px;border:1px solid #cbd5e1;border-radius:4px;">
+                <rect x="0" y="0" width="100" height="100" fill="white"/>
+                <rect x="10" y="10" width="25" height="25" fill="#081b2f"/>
+                <rect x="15" y="15" width="15" height="15" fill="white"/>
+                <rect x="18" y="18" width="9" height="9" fill="#081b2f"/>
+                <rect x="65" y="10" width="25" height="25" fill="#081b2f"/>
+                <rect x="70" y="15" width="15" height="15" fill="white"/>
+                <rect x="73" y="18" width="9" height="9" fill="#081b2f"/>
+                <rect x="10" y="65" width="25" height="25" fill="#081b2f"/>
+                <rect x="15" y="70" width="15" height="15" fill="white"/>
+                <rect x="18" y="73" width="9" height="9" fill="#081b2f"/>
+                <circle cx="50" cy="50" r="12" fill="#c99a3b"/>
+                <rect x="42" y="15" width="10" height="10" fill="#081b2f"/>
+                <rect x="42" y="75" width="10" height="10" fill="#081b2f"/>
+                <rect x="75" y="45" width="10" height="10" fill="#081b2f"/>
+              </svg>
+              <div style="font-size:9px;color:#64748b;margin-top:2px;">Scan to Verify Student Status</div>
+            </div>
+
+            <div style="font-size:9px;color:#64748b;line-height:1.3;margin-top:auto;border-top:1px dashed #cbd5e1;padding-top:6px;text-align:center;">
+              If found, return to Registrar, AJV College of Engineering, Campus Road, Coimbatore.<br>
+              Helpline: +91 422 268 0001 • portal: ajv.edu
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer no-print">
+      <button type="button" class="btn gold" onclick="window.print()">🖨️ Print PVC Smart ID</button>
+      <button type="button" class="btn secondary" onclick="modalDialog.close()">Close</button>
+    </div>
+  `;
+  modalDialog.showModal();
+}
+
+// -------------------------------------------------------------
+// Official Exam Hall Ticket / Admit Card
+// -------------------------------------------------------------
+
+async function openOfficialHallTicket(semester = null, targetStudentId = null) {
+  try {
+    const q = [];
+    if (semester) q.push(`semester=${semester}`);
+    if (targetStudentId) q.push(`studentId=${targetStudentId}`);
+    const query = q.length > 0 ? `?${q.join("&")}` : "";
+
+    const data = await api(`/api/student/hall-ticket${query}`);
+    const st = data.student;
+    const ht = data.hallTicketDetails;
+    const isEligible = data.isEligible;
+    const reasons = data.eligibilityReasons;
+
+    modalDialog.innerHTML = `
+      <div class="modal-header no-print">
+        <div>
+          <div class="eyebrow" style="color:var(--gold);">CONTROLLER OF EXAMINATIONS</div>
+          <h3 style="margin:2px 0;">Official Examination Hall Ticket / Admit Card</h3>
+          <p class="muted" style="margin:0;font-size:12px;">Semester ${ht.semester} • Academic Year ${ht.academicYear}</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          ${isEligible ? `<button class="btn mini gold" onclick="window.print()">🖨️ Print Admit Card</button>` : ''}
+          <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
+        </div>
+      </div>
+
+      <div class="modal-body" style="padding:16px;">
+        ${!isEligible ? `
+          <div class="hallticket-blocked-box">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+              <span style="font-size:28px;">🚫</span>
+              <div>
+                <h3 style="color:#b91c1c;margin:0;">ADMIT CARD WITHHELD / BLOCKED</h3>
+                <p style="color:#991b1b;margin:2px 0 0;font-size:13px;">This candidate has not cleared institutional eligibility prerequisites for semester examinations.</p>
+              </div>
+            </div>
+
+            <div style="background:#fff;border-radius:6px;border:1px solid #fca5a5;padding:12px;font-size:13px;">
+              <div style="margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+                <div>
+                  <b>1. Minimum Attendance Requirement:</b>
+                  <div style="font-size:12px;color:#475569;">${reasons.attendance.message}</div>
+                </div>
+                <span class="pill ${reasons.attendance.cleared ? 'grade-Ap' : 'grade-RA'}">
+                  ${reasons.attendance.cleared ? '✓ Cleared' : 'Deficit Shortage'}
+                </span>
+              </div>
+
+              <div style="display:flex;justify-content:space-between;align-items:center;border-top:1px dashed #fecaca;padding-top:8px;">
+                <div>
+                  <b>2. College Treasury Fee Clearance:</b>
+                  <div style="font-size:12px;color:#475569;">${reasons.fees.message}</div>
+                </div>
+                <span class="pill ${reasons.fees.cleared ? 'grade-Ap' : 'grade-RA'}">
+                  ${reasons.fees.cleared ? '✓ Cleared' : 'Dues Pending'}
+                </span>
+              </div>
+            </div>
+
+            <div style="margin-top:14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              ${!reasons.fees.cleared ? `
+                <button class="btn gold" onclick="modalDialog.close();showPage('fees');">💳 Pay Outstanding Dues Now →</button>
+              ` : ''}
+              <button class="btn secondary" onclick="modalDialog.close();openGrievancesPortal();">💬 File Condonation Appeal / Inquiry</button>
+            </div>
+          </div>
+        ` : `
+          <div class="hallticket-doc">
+            <div class="hallticket-head">
+              <img src="/assets/college-logo.png" alt="AJV" style="width:64px;height:64px;border-radius:50%;border:2px solid var(--gold);">
+              <div class="hallticket-title">
+                <h2>AJV COLLEGE OF ENGINEERING</h2>
+                <div style="font-size:11px;color:#475569;">Autonomous Institution • Affiliated to Anna University • Accredited NAAC 'A+'</div>
+                <h4>END SEMESTER DEGREE EXAMINATIONS - HALL TICKET</h4>
+                <div style="font-size:11px;font-weight:700;color:var(--navy);">${ht.academicYear} • B.Tech / B.E. Degree</div>
+              </div>
+            </div>
+
+            <div class="hallticket-grid">
+              <div>
+                <table class="hallticket-bio-table">
+                  <tr><td class="lbl">Register Number:</td><td><b>${esc(st.registerNo)}</b></td></tr>
+                  <tr><td class="lbl">Candidate Name:</td><td><b>${esc(st.fullName)}</b></td></tr>
+                  <tr><td class="lbl">Degree &amp; Branch:</td><td><b>B.Tech - ${esc(st.department)}</b></td></tr>
+                  <tr><td class="lbl">Year / Semester:</td><td><b>${esc(st.year)} / Semester ${ht.semester}</b></td></tr>
+                  <tr><td class="lbl">Examination Center:</td><td><b>${ht.examCenter}</b></td></tr>
+                  <tr><td class="lbl">Allocated Hall &amp; Seat:</td><td><b style="color:var(--blue);">${ht.hallNumber} • ${ht.seatNumber}</b></td></tr>
+                  <tr><td class="lbl">Attendance Rate:</td><td><b style="color:#059669;">${reasons.attendance.current}% (Eligible)</b></td></tr>
+                  <tr><td class="lbl">Dues Clearance:</td><td><b style="color:#059669;">✓ Fully Cleared (No Dues)</b></td></tr>
+                </table>
+              </div>
+
+              <div class="hallticket-photo-box">
+                <div style="width:84px;height:90px;background:#1e3a5f;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:24px;border-radius:4px;border:1px solid #cbd5e1;margin-bottom:6px;">
+                  ${st.fullName.slice(0, 2).toUpperCase()}
+                </div>
+                <div style="font-size:10px;font-weight:700;color:var(--navy);">${esc(st.loginId)}</div>
+                <div style="font-size:9px;color:#64748b;margin-top:2px;">Candidate Signature</div>
+                <div style="border-top:1px solid #475569;width:80px;margin-top:18px;"></div>
+              </div>
+            </div>
+
+            <div style="margin:16px 0;">
+              <div class="eyebrow" style="margin-bottom:6px;">COURSE TIMETABLE &amp; HALL LOG</div>
+              <table class="table" style="font-size:12px;">
+                <thead>
+                  <tr>
+                    <th>Course Code</th>
+                    <th>Course Title</th>
+                    <th>Date of Exam</th>
+                    <th>Session</th>
+                    <th style="text-align:center;">Invigilator Sign</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${ht.timetable.map(t => `
+                    <tr>
+                      <td><b>${esc(t.courseCode)}</b></td>
+                      <td>${esc(t.courseName)}</td>
+                      <td><b>${t.date}</b></td>
+                      <td><span class="pill grade-B">${t.session}</span></td>
+                      <td style="text-align:center;color:#cbd5e1;">[ &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; ]</td>
+                    </tr>
+                  `).join("")}
+                </tbody>
+              </table>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:24px;padding-top:16px;border-top:1px solid #cbd5e1;">
+              <div>
+                <div style="font-size:10px;color:#64748b;">Verification Hash: <code>${ht.verificationCode}</code></div>
+                <div style="font-size:10px;color:#64748b;">Issued on: ${ht.issueDate} • Digital Hall Scanner Enabled</div>
+              </div>
+              <div style="text-align:center;">
+                <div style="display:inline-block;border:2px solid var(--gold);color:var(--gold);padding:3px 8px;border-radius:4px;font-size:10px;font-weight:900;margin-bottom:4px;">
+                  ★ AJV COE OFFICIAL SEAL ★
+                </div>
+                <div style="font-size:11px;font-weight:700;color:var(--navy);border-top:1px solid #475569;width:160px;padding-top:2px;margin-top:4px;">
+                  Controller of Examinations
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top:16px;padding:8px 12px;background:#f8fafc;border-radius:6px;font-size:10px;color:#64748b;line-height:1.4;">
+              <b>Instructions to Candidate:</b> 1. Hall ticket along with Student ID card must be presented for all examinations. 2. Possession of mobile phones, smartwatches, or programmable calculators inside the examination hall is strictly prohibited. 3. Candidates must report at least 15 minutes prior to session start.
+            </div>
+          </div>
+        `}
+      </div>
+
+      <div class="modal-footer no-print">
+        ${isEligible ? `<button type="button" class="btn gold" onclick="window.print()">🖨️ Print Official Hall Ticket</button>` : ''}
+        <button type="button" class="btn secondary" onclick="modalDialog.close()">Close</button>
+      </div>
+    `;
+    modalDialog.showModal();
+  } catch (err) {
+    toast(err.message, false);
+  }
+}
+
+// -------------------------------------------------------------
+// Daily Subject Attendance Marker (Faculty)
+// -------------------------------------------------------------
+
+async function openFacultyAttendanceMarker() {
+  try {
+    const studentsData = await api("/api/staff/students");
+    const activeStudents = (studentsData || []).filter(s => s.status === "active");
+
+    const courses = [
+      { code: "PH3151", name: "Engineering Physics", semester: 1, dept: "Information Technology", year: "I Year" },
+      { code: "MA3151", name: "Matrices and Calculus", semester: 1, dept: "Information Technology", year: "I Year" },
+      { code: "GE3151", name: "Python Programming", semester: 1, dept: "Information Technology", year: "I Year" },
+      { code: "CS3351", name: "Digital Principles & Computer Org", semester: 3, dept: "Information Technology", year: "II Year" },
+      { code: "CS3301", name: "Data Structures", semester: 3, dept: "Information Technology", year: "II Year" },
+      { code: "CS3591", name: "Computer Networks", semester: 5, dept: "Information Technology", year: "III Year" },
+      { code: "IT3701", name: "Cryptography & Cyber Security", semester: 7, dept: "Information Technology", year: "IV Year" }
+    ];
+
+    state.attendanceRoster = activeStudents.map(s => ({
+      studentId: s.id,
+      fullName: s.fullName,
+      loginId: s.loginId,
+      registerNo: s.registerNo || s.loginId,
+      department: s.department,
+      year: s.year,
+      status: "P"
+    }));
+
+    modalDialog.innerHTML = `
+      <div class="modal-header">
+        <div>
+          <div class="eyebrow" style="color:var(--cyan);">CLASSROOM OPERATIONS</div>
+          <h3 style="margin:2px 0;">📋 Daily Subject Attendance Marker</h3>
+          <p class="muted" style="margin:0;font-size:12px;">Record class attendance session and update university records in real time</p>
+        </div>
+        <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
+      </div>
+
+      <div class="modal-body" style="padding:16px;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(180px, 1fr));gap:12px;background:#f8fafc;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:16px;">
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Academic Year &amp; Dept</label>
+            <select id="attDeptYear" class="input" style="width:100%;font-size:12px;" onchange="filterAttendanceRoster()">
+              <option value="All">All Registered Classes</option>
+              <option value="I Year" selected>I Year • IT</option>
+              <option value="II Year">II Year • IT</option>
+              <option value="III Year">III Year • IT</option>
+              <option value="IV Year">IV Year • IT</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Course / Subject</label>
+            <select id="attCourse" class="input" style="width:100%;font-size:12px;">
+              ${courses.map(c => `<option value="${c.code}" data-name="${c.name}" data-sem="${c.semester}">${c.code} - ${c.name} (Sem ${c.semester})</option>`).join("")}
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#64748b;display:block;margin-bottom:4px;">Session Date</label>
+            <input type="date" id="attDate" class="input" value="${new Date().toISOString().split('T')[0]}" style="width:100%;font-size:12px;">
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px;">
+          <div id="attLiveSummary" style="font-size:13px;font-weight:700;color:var(--navy);">
+            Total: ${state.attendanceRoster.length} | Present: ${state.attendanceRoster.length} | Absent: 0 (100%)
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button type="button" class="btn mini secondary" onclick="markAllAttendance('P')">⚡ Mark All Present</button>
+            <button type="button" class="btn mini secondary" onclick="markAllAttendance('A')">Mark All Absent</button>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto;max-height:360px;">
+          <table class="att-roster-table">
+            <thead>
+              <tr>
+                <th style="width:40px;">#</th>
+                <th>Student Name</th>
+                <th>Register No</th>
+                <th>Year &amp; Dept</th>
+                <th style="text-align:right;">Attendance Status</th>
+              </tr>
+            </thead>
+            <tbody id="attRosterBody">
+              ${renderAttendanceRosterRows()}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display:flex;justify-content:space-between;">
+        <button type="button" class="btn secondary" onclick="modalDialog.close()">Cancel</button>
+        <button type="button" class="btn primary" style="background:#0891b2;color:#fff;" onclick="submitAttendanceSession()">
+          💾 Save &amp; Record Attendance Session
+        </button>
+      </div>
+    `;
+    modalDialog.showModal();
+    updateAttendanceCounters();
+  } catch (err) {
+    toast(err.message, false);
+  }
+}
+
+function renderAttendanceRosterRows() {
+  if (!state.attendanceRoster) return "";
+  const filterYear = document.getElementById("attDeptYear")?.value || "I Year";
+
+  const list = state.attendanceRoster.filter(s => filterYear === "All" || s.year === filterYear);
+
+  return list.map((s, idx) => `
+    <tr>
+      <td>${idx + 1}</td>
+      <td><b>${esc(s.fullName)}</b></td>
+      <td><code>${esc(s.registerNo)}</code></td>
+      <td><span class="muted">${esc(s.year)} • ${esc(s.department)}</span></td>
+      <td style="text-align:right;">
+        <div class="att-btn-group">
+          <button type="button" class="att-btn present ${s.status === 'P' ? 'active' : ''}" onclick="toggleStudentAttendance(${s.studentId}, 'P')">P</button>
+          <button type="button" class="att-btn absent ${s.status === 'A' ? 'active' : ''}" onclick="toggleStudentAttendance(${s.studentId}, 'A')">A</button>
+          <button type="button" class="att-btn od ${s.status === 'OD' ? 'active' : ''}" onclick="toggleStudentAttendance(${s.studentId}, 'OD')">OD</button>
+        </div>
+      </td>
+    </tr>
+  `).join("");
+}
+
+function toggleStudentAttendance(studentId, status) {
+  const item = state.attendanceRoster.find(s => s.studentId === studentId);
+  if (item) {
+    item.status = status;
+    const body = document.getElementById("attRosterBody");
+    if (body) body.innerHTML = renderAttendanceRosterRows();
+    updateAttendanceCounters();
+  }
+}
+
+function markAllAttendance(status) {
+  const filterYear = document.getElementById("attDeptYear")?.value || "I Year";
+  state.attendanceRoster.forEach(s => {
+    if (filterYear === "All" || s.year === filterYear) {
+      s.status = status;
+    }
+  });
+  const body = document.getElementById("attRosterBody");
+  if (body) body.innerHTML = renderAttendanceRosterRows();
+  updateAttendanceCounters();
+}
+
+function filterAttendanceRoster() {
+  const body = document.getElementById("attRosterBody");
+  if (body) body.innerHTML = renderAttendanceRosterRows();
+  updateAttendanceCounters();
+}
+
+function updateAttendanceCounters() {
+  const filterYear = document.getElementById("attDeptYear")?.value || "I Year";
+  const list = (state.attendanceRoster || []).filter(s => filterYear === "All" || s.year === filterYear);
+  const total = list.length;
+  const present = list.filter(s => s.status === "P" || s.status === "OD").length;
+  const absent = list.filter(s => s.status === "A").length;
+  const pct = total > 0 ? ((present / total) * 100).toFixed(1) : "0";
+
+  const el = document.getElementById("attLiveSummary");
+  if (el) {
+    el.innerHTML = `Total: <b>${total}</b> | Present: <b style="color:#059669;">${present}</b> | Absent: <b style="color:#dc2626;">${absent}</b> (${pct}% Attendance Rate)`;
+  }
+}
+
+async function submitAttendanceSession() {
+  const courseSelect = document.getElementById("attCourse");
+  const dateInput = document.getElementById("attDate");
+  const yearSelect = document.getElementById("attDeptYear");
+
+  const courseCode = courseSelect.value;
+  const courseOpt = courseSelect.selectedOptions[0];
+  const courseName = courseOpt ? courseOpt.getAttribute("data-name") : "Subject";
+  const semester = courseOpt ? courseOpt.getAttribute("data-sem") : 1;
+  const date = dateInput.value || new Date().toISOString().split("T")[0];
+  const year = yearSelect.value;
+
+  const records = state.attendanceRoster.map(s => ({
+    studentId: s.studentId,
+    status: s.status
+  }));
+
+  try {
+    const res = await api("/api/staff/attendance/session", {
+      method: "POST",
+      body: {
+        date,
+        department: "Information Technology",
+        year,
+        semester,
+        courseCode,
+        courseName,
+        records
+      }
+    });
+
+    toast(`✓ Class attendance for ${courseCode} (${date}) recorded successfully!`, true);
+    modalDialog.close();
+  } catch (err) {
+    toast(err.message, false);
+  }
+}
+
+// -------------------------------------------------------------
+// Student Subject-wise Attendance Breakdown
+// -------------------------------------------------------------
+
+async function openStudentAttendanceBreakdown(studentId = null, semester = null) {
+  try {
+    const q = [];
+    if (studentId) q.push(`studentId=${studentId}`);
+    if (semester) q.push(`semester=${semester}`);
+    const query = q.length > 0 ? `?${q.join("&")}` : "";
+
+    const data = await api(`/api/student/attendance/subjects${query}`);
+    const st = data.student;
+    const subjects = data.subjects || [];
+
+    modalDialog.innerHTML = `
+      <div class="modal-header">
+        <div>
+          <div class="eyebrow" style="color:var(--cyan);">ATTENDANCE MONITOR</div>
+          <h3 style="margin:2px 0;">Subject-wise Attendance Breakdown</h3>
+          <p class="muted" style="margin:0;font-size:12px;">${esc(st.fullName)} (${esc(st.loginId)}) • Overall: <b>${st.overallAttendance}%</b></p>
+        </div>
+        <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
+      </div>
+
+      <div class="modal-body" style="padding:16px;">
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:12px 16px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:11px;color:#64748b;">OVERALL ACADEMIC ATTENDANCE</div>
+            <div style="font-size:20px;font-weight:900;color:${st.overallAttendance >= 75 ? '#059669' : '#dc2626'};">
+              ${st.overallAttendance}% ${st.overallAttendance >= 75 ? '✓ (Eligible for Exams)' : '⚠️ (Shortage Detention Risk)'}
+            </div>
+          </div>
+          <button class="btn mini gold" onclick="modalDialog.close();openOfficialHallTicket();">🎫 Check Exam Hall Ticket →</button>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Subject Code &amp; Title</th>
+                <th>Sem</th>
+                <th>Classes Attended</th>
+                <th>Attendance %</th>
+                <th>Clearance Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${subjects.map(s => `
+                <tr>
+                  <td><b>${esc(s.code)}</b><br><span class="muted" style="font-size:11px;">${esc(s.name)}</span></td>
+                  <td>Sem ${s.semester}</td>
+                  <td><b>${s.attendedClasses}</b> / ${s.totalClasses} periods</td>
+                  <td>
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <div style="flex:1;height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;min-width:70px;">
+                        <div style="height:100%;width:${s.percentage}%;background:${s.percentage >= 85 ? '#059669' : (s.percentage >= 75 ? '#f59e0b' : '#dc2626')};"></div>
+                      </div>
+                      <b style="font-size:12px;color:${s.percentage >= 75 ? '#059669' : '#dc2626'};">${s.percentage}%</b>
+                    </div>
+                  </td>
+                  <td>
+                    <span class="pill ${s.percentage >= 85 ? 'grade-Ap' : (s.percentage >= 75 ? 'grade-Bp' : 'grade-RA')}">
+                      ${s.status}
+                    </span>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn secondary" onclick="modalDialog.close()">Close</button>
+      </div>
+    `;
+    modalDialog.showModal();
+  } catch (err) {
+    toast(err.message, false);
+  }
+}
+
+// -------------------------------------------------------------
+// Grievances & Helpdesk Service Desk
+// -------------------------------------------------------------
+
+async function openGrievancesPortal() {
+  try {
+    const list = await api("/api/grievances");
+    const isStaffOrAdmin = state.user && (state.user.role === "staff" || state.user.role === "admin");
+
+    modalDialog.innerHTML = `
+      <div class="modal-header">
+        <div>
+          <div class="eyebrow" style="color:var(--gold);">CAMPUS SERVICE DESK</div>
+          <h3 style="margin:2px 0;">💬 Student Grievance &amp; Redressal Portal</h3>
+          <p class="muted" style="margin:0;font-size:12px;">Track complaints, inquiries, fee clarifications &amp; marksheet revaluation requests</p>
+        </div>
+        <div style="display:flex;gap:8px;">
+          ${!isStaffOrAdmin ? `
+            <button class="btn mini gold" onclick="openSubmitGrievanceModal()">+ File New Ticket</button>
+          ` : ''}
+          <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
+        </div>
+      </div>
+
+      <div class="modal-body" style="padding:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+          <div style="font-size:13px;font-weight:700;color:var(--navy);">
+            ${list.length} Ticket(s) on Record
+          </div>
+          ${!isStaffOrAdmin ? `
+            <button class="btn mini gold" onclick="openSubmitGrievanceModal()">+ File New Grievance</button>
+          ` : `
+            <div style="font-size:12px;color:#64748b;">Staff &amp; Administrator Resolution Console</div>
+          `}
+        </div>
+
+        <div style="max-height:420px;overflow-y:auto;">
+          ${list.length === 0 ? `
+            <div style="text-align:center;padding:32px;color:#64748b;">
+              <div style="font-size:32px;margin-bottom:8px;">📬</div>
+              <b>No Grievance Tickets Found</b>
+              <p style="font-size:12px;margin:4px 0 0;">All student service requests and queries have been addressed.</p>
+            </div>
+          ` : list.map(item => `
+            <div class="grievance-item">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:6px;">
+                <div>
+                  <span style="font-family:monospace;font-weight:700;color:#c99a3b;font-size:12px;">${item.ticketNo}</span>
+                  <span style="font-size:11px;color:#64748b;margin-left:6px;">• ${item.category} • Priority: <b>${item.priority}</b></span>
+                  <h4 style="margin:4px 0 2px;color:var(--navy);font-size:14px;">${esc(item.subject)}</h4>
+                  <div style="font-size:11px;color:#64748b;">Filed by: <b>${esc(item.studentName)}</b> (${esc(item.registerNo)}) • ${new Date(item.createdAt).toLocaleDateString('en-IN')}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <span class="status-pill ${item.status.toLowerCase().replace(' ', '-')}">${item.status}</span>
+                  ${isStaffOrAdmin ? `
+                    <button class="btn mini secondary" onclick="openResolveGrievanceModal('${item.id}', '${esc(item.ticketNo)}', '${esc(item.subject)}', '${item.status}', '${esc(item.responseNote || '')}')">
+                      ✍️ Respond
+                    </button>
+                  ` : ''}
+                </div>
+              </div>
+
+              <div style="font-size:12px;color:#334155;background:#f8fafc;padding:8px 12px;border-radius:6px;border:1px solid #f1f5f9;margin-top:6px;">
+                ${esc(item.description)}
+              </div>
+
+              ${item.responseNote ? `
+                <div style="margin-top:8px;background:#ecfdf5;border-left:4px solid #10b981;padding:8px 12px;border-radius:0 6px 6px 0;font-size:12px;">
+                  <b style="color:#065f46;">Official Resolution / Remarks:</b>
+                  <p style="margin:2px 0 0;color:#047857;">${esc(item.responseNote)}</p>
+                  <div style="font-size:10px;color:#059669;margin-top:4px;">Resolved by: ${esc(item.respondedBy || 'Academic Committee')}</div>
+                </div>
+              ` : `
+                <div style="font-size:11px;color:#d97706;margin-top:6px;">⏳ Awaiting response from department coordinator.</div>
+              `}
+            </div>
+          `).join("")}
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn secondary" onclick="modalDialog.close()">Close</button>
+      </div>
+    `;
+    modalDialog.showModal();
+  } catch (err) {
+    toast(err.message, false);
+  }
+}
+
+function openSubmitGrievanceModal() {
+  modalDialog.innerHTML = `
+    <div class="modal-header">
+      <div>
+        <div class="eyebrow" style="color:var(--gold);">NEW INQUIRY / APPEAL</div>
+        <h3 style="margin:2px 0;">Submit Grievance or Service Request</h3>
+        <p class="muted" style="margin:0;font-size:12px;">Your ticket will be routed to the respective college administrative authority</p>
+      </div>
+      <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
+    </div>
+
+    <form onsubmit="submitGrievanceTicket(event)">
+      <div class="modal-body" style="padding:16px;">
+        <label>Category</label>
+        <select id="grvCategory" class="input" style="width:100%;margin-bottom:12px;">
+          <option value="Academic / Revaluation">Academic / Exam Marksheet Revaluation</option>
+          <option value="Fee / Payment Issue">College Fee / Treasury Payment Query</option>
+          <option value="Exam / Hall Ticket">Examination Hall Ticket / Admit Card</option>
+          <option value="Hostel & Transport">Hostel, Mess or Bus Transport</option>
+          <option value="General Grievance">General Student Service Inquiry</option>
+        </select>
+
+        <label>Priority</label>
+        <select id="grvPriority" class="input" style="width:100%;margin-bottom:12px;">
+          <option value="Normal">Normal</option>
+          <option value="High">High</option>
+          <option value="Urgent">Urgent</option>
+        </select>
+
+        <label>Subject / Summary</label>
+        <input id="grvSubject" class="input" placeholder="e.g. Request for evaluation review in CS3301" required style="width:100%;margin-bottom:12px;">
+
+        <label>Detailed Description</label>
+        <textarea id="grvDescription" class="input" rows="4" placeholder="Explain your grievance or request clearly with reference details..." required style="width:100%;"></textarea>
+      </div>
+
+      <div class="modal-footer" style="display:flex;justify-content:space-between;">
+        <button type="button" class="btn secondary" onclick="openGrievancesPortal()">← Back to Tickets</button>
+        <button type="submit" class="btn gold">Submit Ticket →</button>
+      </div>
+    </form>
+  `;
+  modalDialog.showModal();
+}
+
+async function submitGrievanceTicket(e) {
+  e.preventDefault();
+  const category = document.getElementById("grvCategory").value;
+  const priority = document.getElementById("grvPriority").value;
+  const subject = document.getElementById("grvSubject").value;
+  const description = document.getElementById("grvDescription").value;
+
+  try {
+    const res = await api("/api/grievances", {
+      method: "POST",
+      body: { category, priority, subject, description }
+    });
+    toast(res.message, true);
+    openGrievancesPortal();
+  } catch (err) {
+    toast(err.message, false);
+  }
+}
+
+function openResolveGrievanceModal(ticketId, ticketNo, subject, currentStatus, currentNote) {
+  modalDialog.innerHTML = `
+    <div class="modal-header">
+      <div>
+        <div class="eyebrow" style="color:var(--gold);">STAFF RESOLUTION CONSOLE</div>
+        <h3 style="margin:2px 0;">Respond to ${ticketNo}</h3>
+        <p class="muted" style="margin:0;font-size:12px;">${esc(subject)}</p>
+      </div>
+      <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
+    </div>
+
+    <div class="modal-body" style="padding:16px;">
+      <label>Update Status</label>
+      <select id="resolveStatus" class="input" style="width:100%;margin-bottom:12px;">
+        <option value="Open" ${currentStatus === 'Open' ? 'selected' : ''}>Open</option>
+        <option value="In Review" ${currentStatus === 'In Review' ? 'selected' : ''}>In Review</option>
+        <option value="Resolved" ${currentStatus === 'Resolved' ? 'selected' : ''}>Resolved</option>
+      </select>
+
+      <label>Official Resolution / Response Note</label>
+      <textarea id="resolveNote" class="input" rows="4" placeholder="Enter resolution explanation or action taken..." style="width:100%;">${esc(currentNote)}</textarea>
+    </div>
+
+    <div class="modal-footer" style="display:flex;justify-content:space-between;">
+      <button type="button" class="btn secondary" onclick="openGrievancesPortal()">Cancel</button>
+      <button type="button" class="btn gold" onclick="saveGrievanceResolution(${ticketId})">Save Resolution →</button>
+    </div>
+  `;
+  modalDialog.showModal();
+}
+
+async function saveGrievanceResolution(ticketId) {
+  const status = document.getElementById("resolveStatus").value;
+  const responseNote = document.getElementById("resolveNote").value;
+
+  try {
+    const res = await api(`/api/grievances/${ticketId}`, {
+      method: "PUT",
+      body: { status, responseNote }
+    });
+    toast(res.message, true);
+    openGrievancesPortal();
+  } catch (err) {
+    toast(err.message, false);
+  }
+}
+
+// -------------------------------------------------------------
 // Router
 // -------------------------------------------------------------
 
@@ -4026,6 +4869,13 @@ function showPage(p) {
   else if (p === "login") login();
   else if (p === "register") register();
   else if (p === "profile") profile();
+  else if (p === "idcard" || p === "smartid") openDigitalStudentIdCard();
+  else if (p === "hallticket" || p === "admitcard") openOfficialHallTicket();
+  else if (p === "attendance") {
+    if (state.user && state.user.role === "staff") openFacultyAttendanceMarker();
+    else openStudentAttendanceBreakdown();
+  }
+  else if (p === "grievances" || p === "helpdesk") openGrievancesPortal();
   else if (p === "fees" || p === "payment") {
     if (!state.user) login();
     else if (state.user.role === "student") openStudentFeesView();

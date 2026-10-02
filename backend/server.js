@@ -878,6 +878,252 @@ app.delete("/api/announcements/:id", auth, role("staff", "admin"), async (req, r
 });
 
 // -------------------------------------------------------------
+// Grievances & Service Desk
+// -------------------------------------------------------------
+
+app.get("/api/grievances", auth, async (req, res) => {
+  try {
+    const filter = {};
+    if (req.user.role === "student") {
+      filter.studentId = req.user.id;
+    } else if (req.query.studentId) {
+      filter.studentId = req.query.studentId;
+    }
+    if (req.query.status) filter.status = req.query.status;
+
+    const list = await db.getGrievances(filter);
+    res.json(list);
+  } catch (e) {
+    res.status(500).json({ message: e.message || "Failed to load grievances" });
+  }
+});
+
+app.post("/api/grievances", auth, async (req, res) => {
+  const category = clean(req.body.category) || "General";
+  const priority = clean(req.body.priority) || "Normal";
+  const subject = clean(req.body.subject);
+  const description = clean(req.body.description);
+
+  if (!subject || !description) {
+    return res.status(400).json({ message: "Subject and detailed description are required." });
+  }
+
+  try {
+    const student = await db.findUserById(req.user.id);
+    const created = await db.createGrievance({
+      studentId: req.user.id,
+      studentName: student ? student.fullName : req.user.loginId,
+      registerNo: student ? student.registerNo : req.user.loginId,
+      department: student ? student.department : "General",
+      year: student ? student.year : "N/A",
+      category,
+      priority,
+      subject,
+      description
+    });
+    res.status(201).json({ message: "Ticket filed successfully. Tracking ID: " + created.ticketNo, grievance: created });
+  } catch (e) {
+    res.status(500).json({ message: e.message || "Failed to submit grievance" });
+  }
+});
+
+app.put("/api/grievances/:id", auth, role("staff", "admin"), async (req, res) => {
+  const status = clean(req.body.status);
+  const responseNote = req.body.responseNote !== undefined ? clean(req.body.responseNote) : undefined;
+
+  try {
+    const updated = await db.updateGrievance(req.params.id, {
+      status,
+      responseNote,
+      respondedBy: `${req.user.loginId} (${req.user.role.toUpperCase()})`
+    });
+    res.json({ message: "Grievance ticket updated successfully.", grievance: updated });
+  } catch (e) {
+    res.status(500).json({ message: e.message || "Failed to update grievance ticket" });
+  }
+});
+
+// -------------------------------------------------------------
+// Daily Subject Attendance Tracking
+// -------------------------------------------------------------
+
+app.post("/api/staff/attendance/session", auth, role("staff", "admin"), async (req, res) => {
+  const { date, department, year, semester, courseCode, courseName, records } = req.body;
+  if (!courseCode || !records || !Array.isArray(records)) {
+    return res.status(400).json({ message: "Course code and student records are required." });
+  }
+
+  try {
+    const session = await db.saveAttendanceSession({
+      date: date || new Date().toISOString().split("T")[0],
+      department,
+      year,
+      semester: Number(semester || 1),
+      courseCode,
+      courseName,
+      facultyId: req.user.id,
+      facultyName: req.user.loginId,
+      records
+    });
+    res.status(201).json({ message: "Class attendance recorded and student percentages updated.", session });
+  } catch (e) {
+    res.status(500).json({ message: e.message || "Failed to save attendance session" });
+  }
+});
+
+app.get("/api/student/attendance/subjects", auth, async (req, res) => {
+  try {
+    let studentId = req.user.id;
+    if (req.user.role !== "student" && req.query.studentId) {
+      studentId = Number(req.query.studentId);
+    }
+    const student = await db.findUserById(studentId);
+    if (!student) return res.status(404).json({ message: "Student not found" });
+
+    let targetSem = Number(req.query.semester);
+    if (!targetSem || targetSem < 1 || targetSem > 8) {
+      if (student.year === "I Year") targetSem = 2;
+      else if (student.year === "II Year") targetSem = 4;
+      else if (student.year === "III Year") targetSem = 6;
+      else targetSem = 8;
+    }
+
+    const subjects = await db.getStudentSubjectAttendance(studentId, targetSem);
+    res.json({
+      student: {
+        id: student.id,
+        fullName: student.fullName,
+        loginId: student.loginId,
+        department: student.department,
+        year: student.year,
+        overallAttendance: student.attendance
+      },
+      semester: targetSem,
+      subjects
+    });
+  } catch (e) {
+    res.status(500).json({ message: e.message || "Failed to load subject attendance" });
+  }
+});
+
+// -------------------------------------------------------------
+// Exam Hall Ticket & Clearance
+// -------------------------------------------------------------
+
+app.get("/api/student/hall-ticket", auth, async (req, res) => {
+  try {
+    let studentId = req.user.id;
+    if (req.user.role !== "student" && req.query.studentId) {
+      studentId = Number(req.query.studentId);
+    }
+    const targetSem = req.query.semester ? Number(req.query.semester) : null;
+    const data = await db.getHallTicket(studentId, targetSem);
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ message: e.message || "Failed to generate hall ticket" });
+  }
+});
+
+// -------------------------------------------------------------
+// Data Export Endpoints (CSV / Excel)
+// -------------------------------------------------------------
+
+function csvEscape(val) {
+  if (val === null || val === undefined) return '""';
+  return `"${String(val).replace(/"/g, '""')}"`;
+}
+
+app.get("/api/admin/export/students", auth, role("admin", "staff"), async (_req, res) => {
+  try {
+    const students = await db.listStudents();
+    const headers = ["ID", "Login ID", "Register No", "Full Name", "Email", "Phone", "Department", "Year", "Section", "CGPA", "Attendance %", "Status", "Parent Name", "DOB"];
+    const rows = students.map(s => [
+      s.id,
+      s.loginId,
+      s.registerNo || s.loginId,
+      s.fullName,
+      s.email,
+      s.phone,
+      s.department,
+      s.year,
+      s.section,
+      s.cgpa,
+      s.attendance,
+      s.status,
+      s.parentName,
+      s.dob
+    ].map(csvEscape).join(","));
+
+    const csvContent = "\uFEFF" + [headers.map(csvEscape).join(","), ...rows].join("\r\n");
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", 'attachment; filename="AJV_Student_Master_Register.csv"');
+    res.send(csvContent);
+  } catch (e) {
+    res.status(500).json({ message: "Export failed: " + e.message });
+  }
+});
+
+app.get("/api/admin/export/broadsheet/:semester", auth, role("admin", "staff"), async (req, res) => {
+  try {
+    const sem = Number(req.params.semester || 1);
+    const broadsheet = await db.getSemesterBroadsheet(sem);
+    const headers = ["Register No", "Student Name", "Department", "Year", ...broadsheet.courses.map(c => `${c.code} (${c.name})`), "Total Marks", "Percentage", "GPA", "Result Status"];
+
+    const rows = broadsheet.students.map(s => {
+      const courseCols = broadsheet.courses.map(c => {
+        const mark = s.marks[c.code];
+        return mark ? `${mark.totalMark} [${mark.grade}]` : "-";
+      });
+      return [
+        s.student.registerNo || s.student.loginId,
+        s.student.fullName,
+        s.student.department,
+        s.student.year,
+        ...courseCols,
+        s.totalMarks,
+        s.overallPercentage + "%",
+        s.gpa,
+        s.result
+      ].map(csvEscape).join(",");
+    });
+
+    const csvContent = "\uFEFF" + [headers.map(csvEscape).join(","), ...rows].join("\r\n");
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", `attachment; filename="AJV_Semester_${sem}_TMR_Broadsheet.csv"`);
+    res.send(csvContent);
+  } catch (e) {
+    res.status(500).json({ message: "Broadsheet export failed: " + e.message });
+  }
+});
+
+app.get("/api/admin/export/fees", auth, role("admin", "staff"), async (_req, res) => {
+  try {
+    const summary = await db.getAllFeesSummary();
+    const headers = ["Student ID", "Login ID", "Student Name", "Department", "Year", "Total Assessed (INR)", "Total Paid (INR)", "Outstanding Due (INR)", "Clearance Status", "Pending Fees Count"];
+
+    const rows = summary.studentsFees.map(item => [
+      item.student.id,
+      item.student.loginId,
+      item.student.fullName,
+      item.student.department,
+      item.student.year,
+      item.summary.totalAssessed,
+      item.summary.totalPaid,
+      item.summary.totalDue,
+      item.summary.totalDue === 0 ? "FULLY CLEARED" : "PENDING DUE",
+      item.summary.pendingCount
+    ].map(csvEscape).join(","));
+
+    const csvContent = "\uFEFF" + [headers.map(csvEscape).join(","), ...rows].join("\r\n");
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader("Content-Disposition", 'attachment; filename="AJV_Fee_Collections_Register.csv"');
+    res.send(csvContent);
+  } catch (e) {
+    res.status(500).json({ message: "Fee register export failed: " + e.message });
+  }
+});
+
+// -------------------------------------------------------------
 // Static Frontend Fallback
 // -------------------------------------------------------------
 
