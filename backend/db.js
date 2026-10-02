@@ -58,6 +58,18 @@ function loadJsonDb() {
       jsonDb = JSON.parse(fs.readFileSync(DB_JSON_PATH, "utf8"));
       if (!jsonDb.announcements) jsonDb.announcements = [];
       if (!jsonDb.counters) jsonDb.counters = { student: 3, faculty: 1 };
+      if (!jsonDb.resultsPublication) {
+        jsonDb.resultsPublication = {
+          "1": { isPublished: true, publishedAt: "2026-09-15T10:00:00.000Z", publishedBy: "AJV Controller of Examinations" },
+          "2": { isPublished: true, publishedAt: "2026-09-20T11:00:00.000Z", publishedBy: "AJV Controller of Examinations" },
+          "3": { isPublished: false, publishedAt: null, publishedBy: null },
+          "4": { isPublished: false, publishedAt: null, publishedBy: null },
+          "5": { isPublished: false, publishedAt: null, publishedBy: null },
+          "6": { isPublished: false, publishedAt: null, publishedBy: null },
+          "7": { isPublished: false, publishedAt: null, publishedBy: null },
+          "8": { isPublished: false, publishedAt: null, publishedBy: null }
+        };
+      }
       return jsonDb;
     } catch (e) {
       console.error("[Database] Failed to read db.json, creating initial backup:", e.message);
@@ -502,27 +514,55 @@ async function listPendingStudents() {
     .map(u => ({ ...u }));
 }
 
-async function getCourses() {
+async function getCourses(semester = null, department = null) {
   if (dbMode === "postgres") {
-    const res = await pool.query("SELECT * FROM courses ORDER BY id ASC");
+    let query = "SELECT * FROM courses WHERE 1=1";
+    const params = [];
+    if (semester) {
+      params.push(Number(semester));
+      query += ` AND semester = $${params.length}`;
+    }
+    if (department && department !== "All") {
+      params.push(department);
+      query += ` AND (department = $${params.length} OR department = 'Common')`;
+    }
+    query += " ORDER BY semester ASC, id ASC";
+    const res = await pool.query(query, params);
     return res.rows;
   }
-  return [...jsonDb.courses];
+
+  let list = [...jsonDb.courses];
+  if (semester) {
+    list = list.filter(c => Number(c.semester) === Number(semester));
+  }
+  if (department && department !== "All") {
+    list = list.filter(c => c.department === department || c.department === "Common");
+  }
+  return list;
 }
 
-async function getCourseRecords(studentId) {
+async function getCourseRecords(studentId, semester = null) {
   const numId = Number(studentId);
+  const numSem = semester ? Number(semester) : null;
+
   if (dbMode === "postgres") {
-    const res = await pool.query(`
-      SELECT e.*, c.code, c.name, c.credits, c.department as course_department
+    let q = `
+      SELECT e.*, c.code, c.name, c.credits, c.semester as course_semester, c.department as course_department
       FROM enrollments e
       JOIN courses c ON e.course_id = c.id
       WHERE e.student_id = $1
-      ORDER BY c.code ASC
-    `, [numId]);
+    `;
+    const p = [numId];
+    if (numSem) {
+      p.push(numSem);
+      q += ` AND (e.semester = $2 OR c.semester = $2)`;
+    }
+    q += " ORDER BY c.code ASC";
+    const res = await pool.query(q, p);
 
     return res.rows.map(r => ({
       id: r.id,
+      semester: Number(r.semester || r.course_semester || 1),
       attendance: Number(r.attendance),
       internalMark: Number(r.internal_mark),
       externalMark: Number(r.external_mark),
@@ -535,6 +575,7 @@ async function getCourseRecords(studentId) {
         code: r.code,
         name: r.name,
         credits: Number(r.credits),
+        semester: Number(r.course_semester || 1),
         department: r.course_department
       }
     }));
@@ -542,10 +583,12 @@ async function getCourseRecords(studentId) {
 
   // JSON mode
   const records = jsonDb.enrollments.filter(e => Number(e.studentId) === numId);
-  return records.map(r => {
+  const mapped = records.map(r => {
     const c = jsonDb.courses.find(x => x.id === Number(r.courseId)) || {};
+    const sem = Number(r.semester || c.semester || 1);
     return {
       id: r.id,
+      semester: sem,
       attendance: Number(r.attendance || 0),
       internalMark: Number(r.internalMark || 0),
       externalMark: Number(r.externalMark || 0),
@@ -558,17 +601,27 @@ async function getCourseRecords(studentId) {
         code: c.code || "",
         name: c.name || "",
         credits: Number(c.credits || 3),
+        semester: Number(c.semester || sem),
         department: c.department || ""
       }
     };
   });
+
+  if (numSem) {
+    return mapped.filter(r => r.semester === numSem || r.course.semester === numSem);
+  }
+  return mapped;
 }
 
 async function upsertEnrollment(studentId, courseId, data) {
   const sId = Number(studentId);
   const cId = Number(courseId);
-  const totalMark = data.internalMark + data.externalMark;
+  const totalMark = Number(data.internalMark || 0) + Number(data.externalMark || 0);
   const g = gradeFor(totalMark);
+
+  // Find course to get default semester
+  const course = (jsonDb.courses || []).find(c => c.id === cId) || {};
+  const semester = Number(data.semester || course.semester || 1);
 
   if (dbMode === "postgres") {
     const client = await pool.connect();
@@ -580,14 +633,14 @@ async function upsertEnrollment(studentId, courseId, data) {
         recId = existing.rows[0].id;
         await client.query(`
           UPDATE enrollments
-          SET attendance = $1, internal_mark = $2, external_mark = $3, total_mark = $4, percentage = $5, grade = $6, grade_point = $7, updated_at = CURRENT_TIMESTAMP
-          WHERE id = $8
-        `, [data.attendance, data.internalMark, data.externalMark, totalMark, totalMark, g.grade, g.point, recId]);
+          SET attendance = $1, internal_mark = $2, external_mark = $3, total_mark = $4, percentage = $5, grade = $6, grade_point = $7, semester = $8, updated_at = CURRENT_TIMESTAMP
+          WHERE id = $9
+        `, [data.attendance, data.internalMark, data.externalMark, totalMark, totalMark, g.grade, g.point, semester, recId]);
       } else {
         const ins = await client.query(`
-          INSERT INTO enrollments (student_id, course_id, attendance, internal_mark, external_mark, total_mark, percentage, grade, grade_point)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id
-        `, [sId, cId, data.attendance, data.internalMark, data.externalMark, totalMark, totalMark, g.grade, g.point]);
+          INSERT INTO enrollments (student_id, course_id, attendance, internal_mark, external_mark, total_mark, percentage, grade, grade_point, semester)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING id
+        `, [sId, cId, data.attendance, data.internalMark, data.externalMark, totalMark, totalMark, g.grade, g.point, semester]);
         recId = ins.rows[0].id;
       }
       await client.query("COMMIT");
@@ -610,6 +663,7 @@ async function upsertEnrollment(studentId, courseId, data) {
     rec.percentage = totalMark;
     rec.grade = g.grade;
     rec.gradePoint = g.point;
+    rec.semester = semester;
     rec.updatedAt = new Date().toISOString();
   } else {
     const maxId = jsonDb.enrollments.reduce((m, x) => Math.max(m, x.id || 0), 0);
@@ -617,6 +671,7 @@ async function upsertEnrollment(studentId, courseId, data) {
       id: maxId + 1,
       studentId: sId,
       courseId: cId,
+      semester,
       attendance: data.attendance,
       internalMark: data.internalMark,
       externalMark: data.externalMark,
@@ -630,6 +685,150 @@ async function upsertEnrollment(studentId, courseId, data) {
   }
   saveJsonDb();
   return rec.id;
+}
+
+// -------------------------------------------------------------
+// Official Result Publishing (Admin Only) & Semester Marksheets
+// -------------------------------------------------------------
+
+async function getPublishedSemesters() {
+  if (dbMode === "postgres") {
+    try {
+      const res = await pool.query("SELECT * FROM results_publication ORDER BY semester ASC");
+      const map = {};
+      res.rows.forEach(r => {
+        map[String(r.semester)] = { isPublished: Boolean(r.is_published), publishedAt: r.published_at, publishedBy: r.published_by };
+      });
+      return map;
+    } catch {
+      return {};
+    }
+  }
+  return jsonDb.resultsPublication || {};
+}
+
+async function isSemesterPublished(semester) {
+  const s = String(semester);
+  if (dbMode === "postgres") {
+    try {
+      const res = await pool.query("SELECT is_published FROM results_publication WHERE semester = $1", [Number(s)]);
+      return res.rows[0] ? Boolean(res.rows[0].is_published) : false;
+    } catch {
+      return false;
+    }
+  }
+  const pub = jsonDb.resultsPublication && jsonDb.resultsPublication[s];
+  return pub ? Boolean(pub.isPublished) : false;
+}
+
+async function setSemesterPublishStatus(semester, isPublished, publishedBy = "AJV Controller of Examinations") {
+  const s = String(semester);
+  const numS = Number(semester);
+  const pubAt = isPublished ? new Date().toISOString() : null;
+  const pubBy = isPublished ? publishedBy : null;
+
+  if (dbMode === "postgres") {
+    await pool.query(`
+      INSERT INTO results_publication (semester, is_published, published_at, published_by)
+      VALUES ($1, $2, $3, $4)
+      ON CONFLICT (semester) DO UPDATE
+      SET is_published = $2, published_at = $3, published_by = $4
+    `, [numS, isPublished, pubAt, pubBy]);
+    return { semester: numS, isPublished: Boolean(isPublished), publishedAt: pubAt, publishedBy: pubBy };
+  }
+
+  if (!jsonDb.resultsPublication) jsonDb.resultsPublication = {};
+  jsonDb.resultsPublication[s] = {
+    isPublished: Boolean(isPublished),
+    publishedAt: pubAt,
+    publishedBy: pubBy
+  };
+  saveJsonDb();
+  return { semester: numS, isPublished: Boolean(isPublished), publishedAt: pubAt, publishedBy: pubBy };
+}
+
+async function getSemesterResult(studentId, semester) {
+  const sId = Number(studentId);
+  const sem = Number(semester);
+  const student = await findUserById(sId);
+  if (!student) return null;
+
+  const isPublished = await isSemesterPublished(sem);
+  const allPub = await getPublishedSemesters();
+  const pubStatus = allPub[String(sem)] || {};
+
+  // Retrieve records for this semester
+  let records = await getCourseRecords(sId, sem);
+
+  // If no enrolled records exist for this semester, load course templates
+  if (!records.length) {
+    const semCourses = await getCourses(sem, student.department);
+    records = semCourses.map(c => ({
+      id: null,
+      semester: sem,
+      attendance: 0,
+      internalMark: 0,
+      externalMark: 0,
+      totalMark: 0,
+      percentage: 0,
+      grade: "—",
+      gradePoint: 0,
+      course: c
+    }));
+  }
+
+  const validRecords = records.filter(r => r.grade && r.grade !== "—");
+  const totalCredits = validRecords.reduce((s, r) => s + Number(r.course.credits || 0), 0);
+  const earnedCredits = validRecords.filter(r => r.grade !== "RA")
+    .reduce((s, r) => s + Number(r.course.credits || 0), 0);
+
+  const weightedSum = validRecords.reduce((s, r) => s + (Number(r.gradePoint || 0) * Number(r.course.credits || 0)), 0);
+  const sgpa = totalCredits ? Number((weightedSum / totalCredits).toFixed(2)) : 0;
+
+  // Cumulative CGPA calculation
+  const allRecords = await getCourseRecords(sId);
+  const allValid = allRecords.filter(r => r.semester <= sem && r.grade && r.grade !== "—");
+  const totalCgpaCredits = allValid.reduce((s, r) => s + Number(r.course.credits || 0), 0);
+  const totalCgpaWeighted = allValid.reduce((s, r) => s + (Number(r.gradePoint || 0) * Number(r.course.credits || 0)), 0);
+  const cgpa = totalCgpaCredits ? Number((totalCgpaWeighted / totalCgpaCredits).toFixed(2)) : sgpa;
+
+  const hasRA = records.some(r => r.grade === "RA");
+  const hasPending = records.some(r => r.grade === "—");
+  let resultStatus = "PASS";
+  if (hasPending) resultStatus = "INCOMPLETE";
+  else if (hasRA) resultStatus = "RA";
+
+  let classification = "First Class with Distinction";
+  if (hasRA || cgpa < 6.5) classification = "Second Class";
+  else if (cgpa < 8.5) classification = "First Class";
+
+  const yearMap = { 1: "I Year", 2: "I Year", 3: "II Year", 4: "II Year", 5: "III Year", 6: "III Year", 7: "IV Year", 8: "IV Year" };
+
+  return {
+    isPublished,
+    publishedAt: pubStatus.publishedAt || null,
+    publishedBy: pubStatus.publishedBy || null,
+    semester: sem,
+    year: yearMap[sem] || student.year,
+    student,
+    courses: records,
+    sgpa,
+    cgpa,
+    totalCredits,
+    earnedCredits,
+    resultStatus,
+    classification,
+    serialNo: `AJV/COE/${new Date().getFullYear()}/SEM${sem}/${String(student.id).padStart(4, "0")}`,
+    issueDate: new Date().toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" }),
+    institution: {
+      name: "AJV COLLEGE OF ENGINEERING",
+      tagline: "An Autonomous Institution • Affiliated to Anna University, Chennai",
+      accreditation: "Approved by AICTE, New Delhi • Accredited by NAAC with 'A++' Grade • NBA Accredited",
+      office: "OFFICE OF THE CONTROLLER OF EXAMINATIONS",
+      sealCode: "AJV-COE-OFFICIAL-SEAL",
+      regulations: "Regulations 2021 (Choice Based Credit System)"
+    }
+  };
 }
 
 async function recalculateAcademic(studentId) {
@@ -766,5 +965,9 @@ module.exports = {
   createAnnouncement,
   deleteAnnouncement,
   gradeFor,
+  getPublishedSemesters,
+  isSemesterPublished,
+  setSemesterPublishStatus,
+  getSemesterResult,
   getDbMode: () => dbMode
 };

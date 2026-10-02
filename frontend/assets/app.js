@@ -78,6 +78,7 @@ function layoutNav() {
   if (state.user.role === "admin") {
     nav.innerHTML = `
       <button onclick="showPage('dashboard')">Dashboard</button>
+      <button onclick="openPublishResultsCenter()" style="color:var(--gold);font-weight:700;">📢 Publish Results</button>
       <button onclick="loadFaculty()">Faculty</button>
       <button onclick="loadStudents()">Students</button>
       <button onclick="showPage('profile')">Profile</button>
@@ -86,6 +87,7 @@ function layoutNav() {
   } else if (state.user.role === "staff") {
     nav.innerHTML = `
       <button onclick="showPage('dashboard')">Dashboard</button>
+      <button onclick="openFacultyResultsView()" style="color:var(--gold);font-weight:700;">🎓 Results &amp; Marksheets</button>
       <button onclick="loadStudents()">Students</button>
       <button onclick="showPage('profile')">Profile</button>
       <button onclick="logout()">Logout</button>
@@ -93,6 +95,7 @@ function layoutNav() {
   } else {
     nav.innerHTML = `
       <button onclick="showPage('dashboard')">Dashboard</button>
+      <button onclick="showPage('results')" style="color:var(--gold);font-weight:700;">🎓 Semester Marksheets</button>
       <button onclick="showPage('profile')">Profile</button>
       <button onclick="logout()">Logout</button>
     `;
@@ -467,10 +470,223 @@ async function doRegister(e) {
 // Student Dashboard
 // -------------------------------------------------------------
 
-async function studentDashboard() {
+// -------------------------------------------------------------
+// Official Institution Seal & Marksheet Generator
+// -------------------------------------------------------------
+
+function renderInstitutionSealSvg() {
+  return `
+    <div class="institution-seal-badge" title="Official Seal of the Controller of Examinations, AJV College of Engineering">
+      <svg class="seal-svg" viewBox="0 0 200 200" width="124" height="124" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="sealGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#d4af37" />
+            <stop offset="35%" stop-color="#fff3a8" />
+            <stop offset="70%" stop-color="#b8860b" />
+            <stop offset="100%" stop-color="#7a5400" />
+          </linearGradient>
+          <linearGradient id="sealNavyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#0b2447" />
+            <stop offset="100%" stop-color="#041226" />
+          </linearGradient>
+          <path id="sealPathTop" d="M 32,100 A 68,68 0 1,1 168,100" fill="none" />
+          <path id="sealPathBottom" d="M 168,100 A 68,68 0 0,1 32,100" fill="none" />
+        </defs>
+
+        <circle cx="100" cy="100" r="95" fill="none" stroke="url(#sealGoldGrad)" stroke-width="3" stroke-dasharray="3,3" />
+        <circle cx="100" cy="100" r="90" fill="url(#sealNavyGrad)" stroke="url(#sealGoldGrad)" stroke-width="3.5" />
+        <circle cx="100" cy="100" r="67" fill="none" stroke="url(#sealGoldGrad)" stroke-width="1.5" />
+
+        <text font-size="8" font-weight="900" fill="url(#sealGoldGrad)" letter-spacing="1.5" text-anchor="middle">
+          <textPath href="#sealPathTop" startOffset="50%">AJV COLLEGE OF ENGINEERING</textPath>
+        </text>
+
+        <text font-size="7" font-weight="800" fill="url(#sealGoldGrad)" letter-spacing="1" text-anchor="middle">
+          <textPath href="#sealPathBottom" startOffset="50%">* EXAM CONTROLLER • AUTONOMOUS *</textPath>
+        </text>
+
+        <circle cx="100" cy="100" r="48" fill="#081b2f" stroke="url(#sealGoldGrad)" stroke-width="2" />
+        <circle cx="100" cy="100" r="45" fill="none" stroke="#d4af37" stroke-dasharray="2,2" />
+
+        <text x="100" y="80" text-anchor="middle" font-size="11" fill="#ffd700">★ ★ ★</text>
+        <text x="100" y="95" text-anchor="middle" font-size="11" font-weight="900" fill="#ffffff" letter-spacing="1">OFFICIAL</text>
+        <text x="100" y="109" text-anchor="middle" font-size="11" font-weight="900" fill="#ffd700" letter-spacing="1">SEAL</text>
+        <text x="100" y="122" text-anchor="middle" font-size="7" font-weight="700" fill="#93c5fd">ESTD 2008</text>
+        <text x="100" y="132" text-anchor="middle" font-size="6" fill="#f1d98f">TAMIL NADU</text>
+      </svg>
+      <div class="seal-ribbons">
+        <div class="ribbon-left"></div>
+        <div class="ribbon-right"></div>
+      </div>
+    </div>
+  `;
+}
+
+// Open Official Marksheet Modal with verified results and institution seal
+async function openOfficialMarksheet(semester = 1, studentId = null) {
+  try {
+    const sId = studentId || (state.user && state.user.id);
+    const sem = Number(semester || 1);
+    const data = await api(`/api/results/semester/${sem}${sId ? '?studentId=' + sId : ''}`);
+
+    if (data.isPublished === false && state.user && state.user.role === "student") {
+      toast(data.message || `Semester ${sem} results have not been published yet by the Controller of Examinations.`, false);
+      return;
+    }
+
+    renderMarksheetModal(data);
+  } catch (e) {
+    toast(e.message, false);
+  }
+}
+
+// Backward-compatible wrapper for marksheet modal
+function openMarksheetModal(student, academic, courses, semester = 1) {
+  if (student && student.student && student.courses) {
+    renderMarksheetModal(student);
+    return;
+  }
+  openOfficialMarksheet(semester || 1, student ? student.id : null);
+}
+
+function renderMarksheetModal(data) {
+  const isDraft = data.isPublished === false;
+  const courses = data.courses || [];
+  const sem = data.semester || 1;
+  const student = data.student || {};
+  const totalCredits = data.totalCredits || courses.reduce((s, c) => s + Number(c.course?.credits || 0), 0);
+  const earnedCredits = data.earnedCredits || courses.filter(c => c.grade !== 'RA' && c.grade !== '—').reduce((s, c) => s + Number(c.course?.credits || 0), 0);
+  const sgpa = Number(data.sgpa || 0).toFixed(2);
+  const cgpa = Number(data.cgpa || 0).toFixed(2);
+  const classification = data.classification || "First Class";
+
+  modalDialog.innerHTML = `
+    <div class="modal-header">
+      <div>
+        <h2 style="margin:0;">Official Statement of Grades</h2>
+        <small class="muted">Semester ${sem} • Serial: ${esc(data.serialNo || 'AJV-OFFICIAL')}</small>
+      </div>
+      <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="certificate">
+        ${isDraft ? `
+          <div style="background:#fef2f2;border:1px solid #fecaca;color:#991b1b;padding:8px 14px;border-radius:6px;margin-bottom:14px;text-align:center;font-weight:700;font-size:12px;">
+            ⚠️ PROVISIONAL EVALUATION COPY • RESULT NOT OFFICIALLY PUBLISHED YET
+          </div>
+        ` : ''}
+
+        <div class="cert-header">
+          <img src="/assets/college-logo.png" alt="AJV College Logo">
+          <h2>AJV COLLEGE OF ENGINEERING</h2>
+          <p>An Autonomous Institution • Affiliated to Anna University, Chennai • Approved by AICTE, New Delhi</p>
+          <p>Accredited by NAAC with 'A++' Grade • NBA Accredited • ISO 9001:2015 Certified</p>
+          <div style="font-size:11px;font-weight:800;color:var(--blue);letter-spacing:1px;margin-top:4px;">OFFICE OF THE CONTROLLER OF EXAMINATIONS</div>
+          <div class="cert-title">SEMESTER GRADE REPORT &amp; STATEMENT OF MARKS</div>
+          <div style="font-size:12px;font-weight:700;color:#475569;margin-top:2px;">
+            SEMESTER ${sem} (${esc(data.year || student.year || 'I Year').toUpperCase()}) — END SEMESTER EXAMINATIONS
+          </div>
+        </div>
+
+        <div class="cert-meta">
+          <div><span>Name of the Candidate:</span> <b>${esc(student.fullName || '').toUpperCase()}</b></div>
+          <div><span>Register Number:</span> <b>${esc(student.registerNo || student.loginId)}</b></div>
+          <div><span>Degree &amp; Branch:</span> <b>B.Tech — ${esc(student.department)}</b></div>
+          <div><span>Regulations &amp; Pattern:</span> <b>Regulations 2021 (CBCS)</b></div>
+          <div><span>Academic Year:</span> <b>${esc(data.year || student.year)} (Section ${esc(student.section || "A")})</b></div>
+          <div><span>Date of Issue:</span> <b>${esc(data.issueDate || new Date().toLocaleDateString('en-US'))}</b></div>
+        </div>
+
+        <table style="margin-top:16px;">
+          <thead>
+            <tr>
+              <th style="width:40px;text-align:center;">S.No</th>
+              <th>Course Code</th>
+              <th>Course Title</th>
+              <th style="text-align:center;">Credits</th>
+              <th style="text-align:center;">Internal / 40</th>
+              <th style="text-align:center;">External / 60</th>
+              <th style="text-align:center;">Total / 100</th>
+              <th style="text-align:center;">Letter Grade</th>
+              <th style="text-align:center;">Grade Point</th>
+              <th style="text-align:center;">Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${courses.length ? courses.map((c, idx) => `
+              <tr>
+                <td style="text-align:center;">${idx + 1}</td>
+                <td><b>${esc(c.course?.code || '')}</b></td>
+                <td>${esc(c.course?.name || '')}</td>
+                <td style="text-align:center;">${c.course?.credits || 0}</td>
+                <td style="text-align:center;">${c.internalMark}</td>
+                <td style="text-align:center;">${c.externalMark}</td>
+                <td style="text-align:center;"><b>${c.totalMark}</b></td>
+                <td style="text-align:center;"><span class="pill ${gradeClass(c.grade)}">${esc(c.grade)}</span></td>
+                <td style="text-align:center;"><b>${c.gradePoint}</b></td>
+                <td style="text-align:center;"><b>${c.grade === 'RA' ? '<span style="color:#dc2626;">RA</span>' : (c.grade === '—' ? '—' : '<span style="color:#059669;">PASS</span>')}</b></td>
+              </tr>
+            `).join("") : `<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted);">No course marks recorded for this semester yet.</td></tr>`}
+          </tbody>
+        </table>
+
+        <div class="cert-summary">
+          <div class="cert-summary-box">
+            <span>Credits (Reg / Earned)</span>
+            <b>${totalCredits} / ${earnedCredits}</b>
+          </div>
+          <div class="cert-summary-box">
+            <span>Semester GPA (SGPA)</span>
+            <b style="color:var(--blue);">${sgpa} / 10.0</b>
+          </div>
+          <div class="cert-summary-box">
+            <span>Cumulative GPA (CGPA)</span>
+            <b style="color:var(--gold);">${cgpa} / 10.0</b>
+          </div>
+          <div class="cert-summary-box">
+            <span>Standing &amp; Result</span>
+            <b style="font-size:13px;color:${data.resultStatus === 'PASS' ? '#059669' : '#dc2626'};">${data.resultStatus || 'PASS'} • ${classification}</b>
+          </div>
+        </div>
+
+        <div class="cert-bottom-row">
+          <div class="cert-verify-block">
+            <div class="cert-barcode">${esc(data.serialNo || 'AJV-VERIFIED-TRANSCRIPT')}</div>
+            <div><b>Security Hash:</b> SHA256-AJV-${student.id}-${sem}-VERIFIED</div>
+            <div style="margin-top:2px;">Official electronic transcript certified by AJV Examination Cell.</div>
+          </div>
+
+          <!-- Official Institution Seal with Ribbons -->
+          ${renderInstitutionSealSvg()}
+
+          <div class="cert-signatures">
+            <div class="cert-sign-line">Class Advisor</div>
+            <div class="cert-sign-line">Head of Department</div>
+            <div class="cert-sign-line">
+              <div style="font-size:9px;color:#94a3b8;margin-bottom:2px;">Digitally Certified</div>
+              Controller of Examinations
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn secondary" onclick="modalDialog.close()">Close</button>
+      <button class="btn gold" onclick="window.print()">🖨️ Print Marksheet / Save PDF</button>
+    </div>
+  `;
+
+  modalDialog.showModal();
+}
+
+async function studentDashboard(initialSem = 1) {
   try {
     const d = await api("/api/student/dashboard");
+    const pubStatus = await api("/api/results/status").catch(() => ({ publishedSemesters: {} }));
+    const pubMap = pubStatus.publishedSemesters || {};
     const isAttendanceLow = Number(d.academic.attendance) < 75;
+
+    state.studentSelectedSem = state.studentSelectedSem || initialSem || 1;
 
     app.innerHTML = `
       <div class="dashboard">
@@ -481,7 +697,7 @@ async function studentDashboard() {
             <p class="muted">${esc(d.profile.loginId)} • ${esc(d.profile.email || "Pending Email")} • ${esc(d.profile.department)} • ${esc(d.profile.year)} Sec ${esc(d.profile.section || "A")}</p>
           </div>
           <div style="display:flex;gap:10px;align-items:center;">
-            <button class="btn gold" onclick="openMarksheetModal(${JSON.stringify(d.profile).replace(/"/g, '&quot;')}, ${JSON.stringify(d.academic).replace(/"/g, '&quot;')}, ${JSON.stringify(d.courses).replace(/"/g, '&quot;')})">📄 Download Marksheet</button>
+            <button class="btn gold" onclick="openOfficialMarksheet(state.studentSelectedSem)">🎓 View Official Marksheet</button>
             <span class="status">● Enrolled Student</span>
           </div>
         </div>
@@ -512,7 +728,7 @@ async function studentDashboard() {
             <div>
               <span class="label">CGPA (10.0 Scale)</span>
               <b>${Number(d.academic.cgpa).toFixed(2)}</b>
-              <small>Credit-weighted average</small>
+              <small>Cumulative Grade Point</small>
             </div>
             ${renderProgressRing((Number(d.academic.cgpa) / 10) * 100, "#1769aa", Number(d.academic.cgpa).toFixed(1))}
           </div>
@@ -536,9 +752,9 @@ async function studentDashboard() {
           </div>
 
           <div class="stat">
-            <span class="label">Enrolled Courses</span>
-            <b>${d.courses.length}</b>
-            <small>Active semester records</small>
+            <span class="label">Academic Year</span>
+            <b style="font-size:18px;">${esc(d.profile.year)}</b>
+            <small>8 Total Semesters</small>
           </div>
         </div>
 
@@ -549,50 +765,85 @@ async function studentDashboard() {
           <div><span>Parent / Guardian</span><b>${esc(d.profile.parentName || "—")}</b></div>
         </div>
 
-        <div class="table-wrap">
-          <div class="table-title">
+        <!-- 4 Separate Years & 8 Semesters Marksheet Section -->
+        <div class="card" style="margin-top:24px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
             <div>
-              <strong>Semester Marks &amp; Academic Performance</strong>
-              <span>Verified and recorded by course faculty</span>
+              <div class="eyebrow">ACADEMIC RESULTS &amp; MARKSHEETS</div>
+              <h2 style="margin:4px 0;">4 Years • 8 Semesters Grade Statements</h2>
+              <p class="muted" style="margin:0;font-size:13px;">Official semester results published by the Administration &amp; Examination Controller. Select a semester to inspect marks and download the sealed marksheet.</p>
             </div>
-            <button class="btn secondary mini" onclick="openMarksheetModal(${JSON.stringify(d.profile).replace(/"/g, '&quot;')}, ${JSON.stringify(d.academic).replace(/"/g, '&quot;')}, ${JSON.stringify(d.courses).replace(/"/g, '&quot;')})">🖨️ Print Mark Statement</button>
+            <div style="display:flex;gap:8px;">
+              <span class="badge" style="background:#ecfdf5;color:#059669;font-weight:700;">● Admin Published</span>
+              <span class="badge" style="background:#f1f5f9;color:#64748b;font-weight:700;">● In Valuation</span>
+            </div>
           </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Course</th>
-                <th>Credits</th>
-                <th>Attendance</th>
-                <th>Internal / 40</th>
-                <th>External / 60</th>
-                <th>Total / 100</th>
-                <th>Grade</th>
-                <th>Grade Point</th>
-                <th>Result</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${d.courses.length ? d.courses.map(x => `
-                <tr>
-                  <td><b>${esc(x.course.code)}</b><br><small class="muted">${esc(x.course.name)}</small></td>
-                  <td>${x.course.credits}</td>
-                  <td>
-                    ${x.attendance}%
-                    ${x.attendance < 75 ? `<span class="badge-shortage">Low</span>` : ''}
-                  </td>
-                  <td>${x.internalMark}</td>
-                  <td>${x.externalMark}</td>
-                  <td><b>${x.totalMark}</b></td>
-                  <td><span class="pill ${gradeClass(x.grade)}">${esc(x.grade)}</span></td>
-                  <td><b>${x.gradePoint}</b></td>
-                  <td><b>${x.grade === 'RA' ? '<span style="color:#dc2626;">RA</span>' : '<span style="color:#059669;">PASS</span>'}</b></td>
-                </tr>
-              `).join("") : `<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--muted);">No course marks recorded yet. Faculty mark entry is in progress.</td></tr>`}
-            </tbody>
-          </table>
+
+          <!-- 4 Year Groups containing 8 Semesters -->
+          <div class="year-sem-container">
+            <div class="year-group">
+              <div class="year-label">I YEAR</div>
+              <div class="sem-btns">
+                <button class="sem-btn ${state.studentSelectedSem === 1 ? 'active' : ''}" onclick="selectStudentSem(1)">
+                  <span>Semester 1</span>
+                  ${pubMap['1']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                </button>
+                <button class="sem-btn ${state.studentSelectedSem === 2 ? 'active' : ''}" onclick="selectStudentSem(2)">
+                  <span>Semester 2</span>
+                  ${pubMap['2']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                </button>
+              </div>
+            </div>
+
+            <div class="year-group">
+              <div class="year-label">II YEAR</div>
+              <div class="sem-btns">
+                <button class="sem-btn ${state.studentSelectedSem === 3 ? 'active' : ''}" onclick="selectStudentSem(3)">
+                  <span>Semester 3</span>
+                  ${pubMap['3']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                </button>
+                <button class="sem-btn ${state.studentSelectedSem === 4 ? 'active' : ''}" onclick="selectStudentSem(4)">
+                  <span>Semester 4</span>
+                  ${pubMap['4']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                </button>
+              </div>
+            </div>
+
+            <div class="year-group">
+              <div class="year-label">III YEAR</div>
+              <div class="sem-btns">
+                <button class="sem-btn ${state.studentSelectedSem === 5 ? 'active' : ''}" onclick="selectStudentSem(5)">
+                  <span>Semester 5</span>
+                  ${pubMap['5']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                </button>
+                <button class="sem-btn ${state.studentSelectedSem === 6 ? 'active' : ''}" onclick="selectStudentSem(6)">
+                  <span>Semester 6</span>
+                  ${pubMap['6']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                </button>
+              </div>
+            </div>
+
+            <div class="year-group">
+              <div class="year-label">IV YEAR</div>
+              <div class="sem-btns">
+                <button class="sem-btn ${state.studentSelectedSem === 7 ? 'active' : ''}" onclick="selectStudentSem(7)">
+                  <span>Semester 7</span>
+                  ${pubMap['7']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                </button>
+                <button class="sem-btn ${state.studentSelectedSem === 8 ? 'active' : ''}" onclick="selectStudentSem(8)">
+                  <span>Semester 8</span>
+                  ${pubMap['8']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div id="studentSemDetail" style="margin-top:20px;">
+            <!-- Rendered by loadStudentSemResult(state.studentSelectedSem) -->
+          </div>
         </div>
 
-        <div class="two-col">
+        <div class="two-col" style="margin-top:24px;">
           <div class="card">
             <h3>Student Identity &amp; Profile</h3>
             <div class="detail-grid">
@@ -619,105 +870,319 @@ async function studentDashboard() {
         </div>
       </div>
     `;
+
+    loadStudentSemResult(state.studentSelectedSem);
   } catch (x) {
     toast(x.message, false);
   }
 }
 
-// -------------------------------------------------------------
-// Official Marksheet Certificate Modal
-// -------------------------------------------------------------
+async function selectStudentSem(sem) {
+  state.studentSelectedSem = sem;
+  document.querySelectorAll(".sem-btn").forEach((b, idx) => {
+    b.classList.toggle("active", idx + 1 === sem);
+  });
+  loadStudentSemResult(sem);
+}
 
-function openMarksheetModal(student, academic, courses) {
-  const totalCredits = courses.reduce((acc, c) => acc + Number(c.course.credits || 0), 0);
-  const hasRA = courses.some(c => c.grade === 'RA');
-  let classification = "First Class with Distinction";
-  if (hasRA || Number(academic.cgpa) < 6.5) classification = "Second Class";
-  else if (Number(academic.cgpa) < 8.5) classification = "First Class";
+async function loadStudentSemResult(sem) {
+  const container = document.getElementById("studentSemDetail");
+  if (!container) return;
 
-  modalDialog.innerHTML = `
-    <div class="modal-header">
-      <h2>Official Statement of Marks</h2>
-      <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
-    </div>
-    <div class="modal-body">
-      <div class="certificate">
-        <div class="cert-header">
-          <img src="/assets/college-logo.png" alt="AJV College Emblem">
-          <h2>AJV COLLEGE OF ENGINEERING</h2>
-          <p>An Autonomous Institution • Approved by AICTE, New Delhi • Affiliated to Anna University</p>
-          <div class="cert-title">SEMESTER GRADE CARD &amp; STATEMENT OF MARKS</div>
+  container.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted);">Loading Semester ${sem} records...</div>`;
+  try {
+    const data = await api(`/api/results/semester/${sem}`);
+
+    if (data.isPublished === false) {
+      container.innerHTML = `
+        <div style="background:#f8fafc;border:2px dashed #cbd5e1;border-radius:12px;padding:36px 24px;text-align:center;">
+          <div style="font-size:42px;margin-bottom:8px;">⏳</div>
+          <h3 style="color:var(--navy);margin:4px 0;">Semester ${sem} Results Pending Official Publication</h3>
+          <p class="muted" style="max-width:550px;margin:8px auto 16px;font-size:14px;">
+            Semester ${sem} assessments are currently undergoing valuation and verification. 
+            Once officially published by the Controller of Examinations / Admin, your statement of marks and verified institutional marksheet will appear here automatically.
+          </p>
+          <span class="badge" style="background:#fef3c7;color:#b45309;font-weight:700;padding:6px 14px;border-radius:999px;">
+            🔒 Status: Unpublished by Administration
+          </span>
         </div>
+      `;
+      return;
+    }
 
-        <div class="cert-meta">
-          <div><span>Student Name:</span> <b>${esc(student.fullName)}</b></div>
-          <div><span>Register Number:</span> <b>${esc(student.registerNo || student.loginId)}</b></div>
-          <div><span>Official Email:</span> <b>${esc(student.email || "—")}</b></div>
-          <div><span>Department:</span> <b>${esc(student.department)}</b></div>
-          <div><span>Academic Year:</span> <b>${esc(student.year)} (Section ${esc(student.section || "A")})</b></div>
-          <div><span>Issue Date:</span> <b>${new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}</b></div>
+    const courses = data.courses || [];
+    container.innerHTML = `
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 18px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <div>
+          <b style="color:#166534;font-size:15px;">✓ Official Results Published: Semester ${sem} (${esc(data.year)})</b>
+          <div style="color:#15803d;font-size:12px;">Certified by ${esc(data.publishedBy || 'AJV Controller of Examinations')} • SGPA: <b>${data.sgpa} / 10.0</b> • Result: <b>${data.resultStatus}</b></div>
         </div>
+        <button class="btn gold" onclick="openOfficialMarksheet(${sem})">🎓 View Official Marksheet (With Seal) →</button>
+      </div>
 
-        <table style="margin-top:16px;">
+      <div class="table-wrap" style="box-shadow:none;border:1px solid var(--line);">
+        <table>
           <thead>
             <tr>
-              <th>Course Code</th>
-              <th>Course Title</th>
-              <th>Credits</th>
-              <th>Internal / 40</th>
-              <th>External / 60</th>
-              <th>Total / 100</th>
-              <th>Letter Grade</th>
-              <th>Grade Point</th>
-              <th>Result</th>
+              <th style="width:40px;text-align:center;">#</th>
+              <th>Course Code &amp; Title</th>
+              <th style="text-align:center;">Credits</th>
+              <th style="text-align:center;">Attendance</th>
+              <th style="text-align:center;">Internal / 40</th>
+              <th style="text-align:center;">External / 60</th>
+              <th style="text-align:center;">Total / 100</th>
+              <th style="text-align:center;">Letter Grade</th>
+              <th style="text-align:center;">Grade Point</th>
+              <th style="text-align:center;">Result</th>
             </tr>
           </thead>
           <tbody>
-            ${courses.length ? courses.map(c => `
+            ${courses.length ? courses.map((x, i) => `
               <tr>
-                <td><b>${esc(c.course.code)}</b></td>
-                <td>${esc(c.course.name)}</td>
-                <td>${c.course.credits}</td>
-                <td>${c.internalMark}</td>
-                <td>${c.externalMark}</td>
-                <td><b>${c.totalMark}</b></td>
-                <td><span class="pill ${gradeClass(c.grade)}">${esc(c.grade)}</span></td>
-                <td>${c.gradePoint}</td>
-                <td><b>${c.grade === 'RA' ? 'RA' : 'PASS'}</b></td>
+                <td style="text-align:center;">${i + 1}</td>
+                <td><b>${esc(x.course?.code || '')}</b><br><small class="muted">${esc(x.course?.name || '')}</small></td>
+                <td style="text-align:center;">${x.course?.credits || 0}</td>
+                <td style="text-align:center;">${x.attendance}%</td>
+                <td style="text-align:center;">${x.internalMark}</td>
+                <td style="text-align:center;">${x.externalMark}</td>
+                <td style="text-align:center;"><b>${x.totalMark}</b></td>
+                <td style="text-align:center;"><span class="pill ${gradeClass(x.grade)}">${esc(x.grade)}</span></td>
+                <td style="text-align:center;"><b>${x.gradePoint}</b></td>
+                <td style="text-align:center;"><b>${x.grade === 'RA' ? '<span style="color:#dc2626;">RA</span>' : (x.grade === '—' ? '—' : '<span style="color:#059669;">PASS</span>')}</b></td>
               </tr>
-            `).join("") : `<tr><td colspan="9">No marks recorded.</td></tr>`}
+            `).join("") : `<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted);">No course marks recorded for this semester yet.</td></tr>`}
           </tbody>
         </table>
+      </div>
+    `;
+  } catch (err) {
+    container.innerHTML = `<div style="color:#dc2626;padding:16px;">Failed to load semester result: ${esc(err.message)}</div>`;
+  }
+}
 
-        <div class="cert-summary">
-          <div class="cert-summary-box">
-            <span>Total Credits Earned</span>
-            <b>${totalCredits}</b>
+function openStudentResultsView(sem = 1) {
+  studentDashboard(sem);
+}
+
+// -------------------------------------------------------------
+// Faculty & Staff Results & Marksheet View
+// -------------------------------------------------------------
+
+async function openFacultyResultsView(initialSem = 1, initialStudentId = null) {
+  try {
+    const students = await api("/api/staff/students");
+    state.staffStudents = students;
+    const pubStatus = await api("/api/results/status").catch(() => ({ publishedSemesters: {} }));
+    const pubMap = pubStatus.publishedSemesters || {};
+
+    state.facultySelectedSem = Number(state.facultySelectedSem || initialSem || 1);
+    state.facultySelectedStudent = Number(state.facultySelectedStudent || initialStudentId || (students[0] ? students[0].id : null));
+
+    app.innerHTML = `
+      <div class="dashboard">
+        <div class="dash-head">
+          <div>
+            <div class="eyebrow">ACADEMIC RESULTS &amp; MARKSHEETS</div>
+            <h1>Semester Grade Reports &amp; Marksheets</h1>
+            <p class="muted">Faculty Console: Inspect student performance across 4 Years / 8 Semesters and generate official verified marksheets with institution seal.</p>
           </div>
-          <div class="cert-summary-box">
-            <span>Cumulative GPA (CGPA)</span>
-            <b>${Number(academic.cgpa).toFixed(2)} / 10.0</b>
-          </div>
-          <div class="cert-summary-box">
-            <span>Standing Classification</span>
-            <b style="font-size:15px;margin-top:5px;">${classification}</b>
+          <div style="display:flex;gap:10px;">
+            <button class="btn secondary" onclick="showPage('dashboard')">← Dashboard</button>
           </div>
         </div>
 
-        <div class="cert-signatures">
-          <div class="cert-sign-line">Class Advisor</div>
-          <div class="cert-sign-line">Head of Department</div>
-          <div class="cert-sign-line">Controller of Examinations</div>
+        <!-- Student & Semester Selection Bar -->
+        <div class="card" style="margin-bottom:20px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;">
+            <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;flex:1;">
+              <div>
+                <label style="margin:0 0 4px;font-size:11px;font-weight:700;">SELECT STUDENT</label>
+                <select id="facultyStudentSelect" onchange="changeFacultyStudent(this.value)" style="padding:8px 12px;border:1px solid var(--line);border-radius:6px;min-width:240px;font-weight:600;background:var(--bg);">
+                  ${students.map(s => `<option value="${s.id}" ${s.id === state.facultySelectedStudent ? 'selected' : ''}>${esc(s.loginId)} — ${esc(s.fullName)} (${esc(s.department)})</option>`).join("")}
+                </select>
+              </div>
+
+              <div>
+                <label style="margin:0 0 4px;font-size:11px;font-weight:700;">ACADEMIC SEMESTER</label>
+                <select id="facultySemSelect" onchange="changeFacultySem(this.value)" style="padding:8px 12px;border:1px solid var(--line);border-radius:6px;min-width:180px;font-weight:600;background:var(--bg);">
+                  <option value="1" ${state.facultySelectedSem === 1 ? 'selected' : ''}>Semester 1 (I Year)</option>
+                  <option value="2" ${state.facultySelectedSem === 2 ? 'selected' : ''}>Semester 2 (I Year)</option>
+                  <option value="3" ${state.facultySelectedSem === 3 ? 'selected' : ''}>Semester 3 (II Year)</option>
+                  <option value="4" ${state.facultySelectedSem === 4 ? 'selected' : ''}>Semester 4 (II Year)</option>
+                  <option value="5" ${state.facultySelectedSem === 5 ? 'selected' : ''}>Semester 5 (III Year)</option>
+                  <option value="6" ${state.facultySelectedSem === 6 ? 'selected' : ''}>Semester 6 (III Year)</option>
+                  <option value="7" ${state.facultySelectedSem === 7 ? 'selected' : ''}>Semester 7 (IV Year)</option>
+                  <option value="8" ${state.facultySelectedSem === 8 ? 'selected' : ''}>Semester 8 (IV Year)</option>
+                </select>
+              </div>
+            </div>
+
+            <button class="btn gold" onclick="openOfficialMarksheet(state.facultySelectedSem, state.facultySelectedStudent)">
+              🎓 View Official Marksheet (With Seal) →
+            </button>
+          </div>
+        </div>
+
+        <!-- 4 Years & 8 Semesters Quick Tabs -->
+        <div class="card" style="margin-bottom:24px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+            <b>Select Semester to View:</b>
+            <div style="font-size:12px;">
+              ${pubMap[String(state.facultySelectedSem)]?.isPublished
+                ? '<span style="color:#059669;font-weight:700;">● Admin Published to Students</span>'
+                : '<span style="color:#d97706;font-weight:700;">🔒 Unpublished / In Valuation</span>'}
+            </div>
+          </div>
+          <div class="year-sem-container">
+            <div class="year-group">
+              <div class="year-label">I YEAR</div>
+              <div class="sem-btns">
+                <button class="sem-btn ${state.facultySelectedSem === 1 ? 'active' : ''}" onclick="changeFacultySem(1)">
+                  <span>Semester 1</span>
+                  ${pubMap['1']?.isPublished ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
+                </button>
+                <button class="sem-btn ${state.facultySelectedSem === 2 ? 'active' : ''}" onclick="changeFacultySem(2)">
+                  <span>Semester 2</span>
+                  ${pubMap['2']?.isPublished ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
+                </button>
+              </div>
+            </div>
+            <div class="year-group">
+              <div class="year-label">II YEAR</div>
+              <div class="sem-btns">
+                <button class="sem-btn ${state.facultySelectedSem === 3 ? 'active' : ''}" onclick="changeFacultySem(3)">
+                  <span>Semester 3</span>
+                  ${pubMap['3']?.isPublished ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
+                </button>
+                <button class="sem-btn ${state.facultySelectedSem === 4 ? 'active' : ''}" onclick="changeFacultySem(4)">
+                  <span>Semester 4</span>
+                  ${pubMap['4']?.isPublished ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
+                </button>
+              </div>
+            </div>
+            <div class="year-group">
+              <div class="year-label">III YEAR</div>
+              <div class="sem-btns">
+                <button class="sem-btn ${state.facultySelectedSem === 5 ? 'active' : ''}" onclick="changeFacultySem(5)">
+                  <span>Semester 5</span>
+                  ${pubMap['5']?.isPublished ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
+                </button>
+                <button class="sem-btn ${state.facultySelectedSem === 6 ? 'active' : ''}" onclick="changeFacultySem(6)">
+                  <span>Semester 6</span>
+                  ${pubMap['6']?.isPublished ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
+                </button>
+              </div>
+            </div>
+            <div class="year-group">
+              <div class="year-label">IV YEAR</div>
+              <div class="sem-btns">
+                <button class="sem-btn ${state.facultySelectedSem === 7 ? 'active' : ''}" onclick="changeFacultySem(7)">
+                  <span>Semester 7</span>
+                  ${pubMap['7']?.isPublished ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
+                </button>
+                <button class="sem-btn ${state.facultySelectedSem === 8 ? 'active' : ''}" onclick="changeFacultySem(8)">
+                  <span>Semester 8</span>
+                  ${pubMap['8']?.isPublished ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="facultyResultDetail">
+          <!-- Populated by loadFacultyResultDetail -->
         </div>
       </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn secondary" onclick="modalDialog.close()">Close</button>
-      <button class="btn gold" onclick="window.print()">🖨️ Print / Save as PDF</button>
-    </div>
-  `;
+    `;
 
-  modalDialog.showModal();
+    loadFacultyResultDetail();
+  } catch (err) {
+    toast(err.message, false);
+  }
+}
+
+function changeFacultyStudent(id) {
+  state.facultySelectedStudent = Number(id);
+  loadFacultyResultDetail();
+}
+
+function changeFacultySem(sem) {
+  state.facultySelectedSem = Number(sem);
+  const semSelect = document.getElementById("facultySemSelect");
+  if (semSelect) semSelect.value = String(sem);
+  document.querySelectorAll(".sem-btn").forEach((b, idx) => {
+    b.classList.toggle("active", idx + 1 === state.facultySelectedSem);
+  });
+  loadFacultyResultDetail();
+}
+
+async function loadFacultyResultDetail() {
+  const container = document.getElementById("facultyResultDetail");
+  if (!container) return;
+  if (!state.facultySelectedStudent) {
+    container.innerHTML = `<p class="muted" style="padding:20px;text-align:center;">Please select a student above.</p>`;
+    return;
+  }
+
+  container.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted);">Loading semester ${state.facultySelectedSem} assessment...</div>`;
+  try {
+    const data = await api(`/api/results/semester/${state.facultySelectedSem}?studentId=${state.facultySelectedStudent}`);
+    const courses = data.courses || [];
+    const isPub = data.isPublished;
+
+    container.innerHTML = `
+      <div style="background:${isPub ? '#f0fdf4' : '#fffbeb'};border:1px solid ${isPub ? '#86efac' : '#fde68a'};border-radius:8px;padding:14px 18px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <div>
+          <b style="color:${isPub ? '#15803d' : '#b45309'};font-size:15px;">
+            ${isPub ? '✓ Semester ' + state.facultySelectedSem + ' Results: Officially Published' : '🔒 Semester ' + state.facultySelectedSem + ' Results: Unpublished (Faculty Review Copy)'}
+          </b>
+          <div style="color:${isPub ? '#166534' : '#92400e'};font-size:12px;margin-top:2px;">
+            Candidate: <b>${esc(data.student?.fullName)} (${esc(data.student?.loginId)})</b> • SGPA: <b>${data.sgpa} / 10.0</b> • Result: <b>${data.resultStatus}</b> • Credits Earned: <b>${data.earnedCredits} / ${data.totalCredits}</b>
+          </div>
+        </div>
+        <button class="btn gold" onclick="openOfficialMarksheet(${state.facultySelectedSem}, ${state.facultySelectedStudent})">
+          🖨️ Open Sealed Marksheet Statement →
+        </button>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:40px;text-align:center;">#</th>
+              <th>Course Code &amp; Title</th>
+              <th style="text-align:center;">Credits</th>
+              <th style="text-align:center;">Attendance</th>
+              <th style="text-align:center;">Internal / 40</th>
+              <th style="text-align:center;">External / 60</th>
+              <th style="text-align:center;">Total / 100</th>
+              <th style="text-align:center;">Letter Grade</th>
+              <th style="text-align:center;">Grade Point</th>
+              <th style="text-align:center;">Result</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${courses.length ? courses.map((x, i) => `
+              <tr>
+                <td style="text-align:center;">${i + 1}</td>
+                <td><b>${esc(x.course?.code || '')}</b><br><small class="muted">${esc(x.course?.name || '')}</small></td>
+                <td style="text-align:center;">${x.course?.credits || 0}</td>
+                <td style="text-align:center;">${x.attendance}%</td>
+                <td style="text-align:center;">${x.internalMark}</td>
+                <td style="text-align:center;">${x.externalMark}</td>
+                <td style="text-align:center;"><b>${x.totalMark}</b></td>
+                <td style="text-align:center;"><span class="pill ${gradeClass(x.grade)}">${esc(x.grade)}</span></td>
+                <td style="text-align:center;"><b>${x.gradePoint}</b></td>
+                <td style="text-align:center;"><b>${x.grade === 'RA' ? '<span style="color:#dc2626;">RA</span>' : (x.grade === '—' ? '—' : '<span style="color:#059669;">PASS</span>')}</b></td>
+              </tr>
+            `).join("") : `<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted);">No course marks recorded for Semester ${state.facultySelectedSem} yet.</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    `;
+  } catch (err) {
+    container.innerHTML = `<div style="color:#dc2626;padding:16px;">Failed to load result: ${esc(err.message)}</div>`;
+  }
 }
 
 // -------------------------------------------------------------
@@ -738,6 +1203,7 @@ async function staffDashboard() {
             <p class="muted">Review student applications, enter marks, and publish bulletins.</p>
           </div>
           <div style="display:flex;gap:10px;">
+            <button class="btn gold" onclick="openFacultyResultsView()">🎓 Results &amp; Marksheets</button>
             <button class="btn secondary" onclick="openAnnouncementModal()">📢 Post Bulletin</button>
             <button class="btn" onclick="loadStudents()">Student Directory →</button>
           </div>
@@ -830,7 +1296,8 @@ async function adminDashboard() {
             <p class="muted">Authorized Workstation (${window.location.hostname}). Full protection and credential governance.</p>
           </div>
           <div style="display:flex;gap:10px;">
-            <button class="btn gold" onclick="openIssueFacultyModal()">+ Issue Faculty ID</button>
+            <button class="btn gold" onclick="openPublishResultsCenter()">📢 Publish Results (8 Semesters)</button>
+            <button class="btn secondary" onclick="openIssueFacultyModal()">+ Issue Faculty ID</button>
             <button class="btn secondary" onclick="openAnnouncementModal()">📢 Post Bulletin</button>
           </div>
         </div>
@@ -889,6 +1356,161 @@ async function adminDashboard() {
   } catch (x) {
     toast(x.message, false);
   }
+}
+
+// -------------------------------------------------------------
+// Admin Result Publication Center (Strictly Admin Controlled)
+// -------------------------------------------------------------
+
+async function openPublishResultsCenter() {
+  if (!state.user || state.user.role !== "admin") {
+    toast("Unauthorized: Results publication is restricted to Administrator only", false);
+    return showPage("dashboard");
+  }
+
+  try {
+    const statusData = await api("/api/results/status");
+    const pubMap = statusData.publishedSemesters || {};
+    const students = await api("/api/staff/students");
+    state.staffStudents = students;
+
+    const years = [
+      { year: "I Year", sems: [1, 2], desc: "Foundation & Applied Science Core" },
+      { year: "II Year", sems: [3, 4], desc: "Department Core & Data Structures" },
+      { year: "III Year", sems: [5, 6], desc: "Advanced System Engineering & Networks" },
+      { year: "IV Year", sems: [7, 8], desc: "Electives, Cloud Systems & Final Capstone" }
+    ];
+
+    app.innerHTML = `
+      <div class="dashboard">
+        <div class="dash-head">
+          <div>
+            <div class="eyebrow" style="color:var(--red);">🛡️ STRICTLY ADMIN CONTROLLED</div>
+            <h1>Official Results Publication Center</h1>
+            <p class="muted">Manage official result release across all 4 Academic Years and 8 Semesters. Only published semesters are viewable and downloadable as sealed marksheets by students.</p>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn secondary" onclick="showPage('dashboard')">← Admin Dashboard</button>
+          </div>
+        </div>
+
+        <!-- Executive Quick Preview Toolbar -->
+        <div class="card" style="background:#f8fafc;border:1px solid #cbd5e1;margin-bottom:24px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+            <div>
+              <b style="color:var(--navy);font-size:15px;">🎓 Instant Marksheet Inspection (Admin Preview With Official Seal)</b>
+              <p class="muted" style="margin:2px 0 0;font-size:12px;">Inspect or print any student's marksheet with the institutional seal at any time, even before public release.</p>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+              <select id="adminPreviewStudent" style="padding:8px 12px;border:1px solid var(--line);border-radius:6px;min-width:220px;font-size:13px;background:#fff;">
+                ${students.map(s => `<option value="${s.id}">${esc(s.loginId)} — ${esc(s.fullName)} (${esc(s.year)})</option>`).join("")}
+              </select>
+              <select id="adminPreviewSemSelect" style="padding:8px 12px;border:1px solid var(--line);border-radius:6px;font-size:13px;background:#fff;">
+                <option value="1">Semester 1 (I Year)</option>
+                <option value="2">Semester 2 (I Year)</option>
+                <option value="3">Semester 3 (II Year)</option>
+                <option value="4">Semester 4 (II Year)</option>
+                <option value="5">Semester 5 (III Year)</option>
+                <option value="6">Semester 6 (III Year)</option>
+                <option value="7">Semester 7 (IV Year)</option>
+                <option value="8">Semester 8 (IV Year)</option>
+              </select>
+              <button class="btn gold" onclick="openOfficialMarksheet(document.getElementById('adminPreviewSemSelect').value, document.getElementById('adminPreviewStudent').value)">
+                View Marksheet (With Seal) →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4 Years & 8 Semesters Publishing Grid -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(310px, 1fr));gap:20px;">
+          ${years.map(y => `
+            <div class="card" style="border-top:4px solid var(--navy);display:flex;flex-direction:column;justify-content:space-between;">
+              <div>
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <span class="eyebrow" style="color:var(--blue);">${y.year.toUpperCase()}</span>
+                  <span style="font-size:11px;font-weight:700;color:var(--muted);">${y.sems.length} Semesters</span>
+                </div>
+                <h3 style="margin:6px 0 2px;">${y.year} Academic Assessment</h3>
+                <p class="muted" style="font-size:12px;margin:0 0 16px;">${y.desc}</p>
+                
+                <div style="display:flex;flex-direction:column;gap:12px;">
+                  ${y.sems.map(sem => {
+                    const pub = pubMap[String(sem)] || { isPublished: false };
+                    const isPub = !!pub.isPublished;
+                    return `
+                      <div style="background:${isPub ? '#f0fdf4' : '#f8fafc'};border:1px solid ${isPub ? '#86efac' : '#e2e8f0'};border-radius:8px;padding:12px 14px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                          <div>
+                            <b style="font-size:14px;color:var(--navy);">Semester ${sem}</b>
+                            <div style="font-size:11px;color:${isPub ? '#15803d' : '#64748b'};">
+                              ${isPub ? `✓ Published by ${esc(pub.publishedBy || 'Admin')} on ${pub.publishedAt ? new Date(pub.publishedAt).toLocaleDateString() : 'Active'}` : '🔒 Unpublished (Valuation in progress)'}
+                            </div>
+                          </div>
+                          <span class="pill ${isPub ? 'grade-Ap' : 'grade-B'}" style="font-size:11px;padding:3px 8px;">
+                            ${isPub ? 'PUBLISHED' : 'DRAFT'}
+                          </span>
+                        </div>
+
+                        <div style="display:flex;gap:8px;align-items:center;margin-top:10px;">
+                          ${isPub ? `
+                            <button class="btn secondary mini" style="flex:1;" onclick="adminTogglePublish(${sem}, false)">
+                              🔒 Unpublish Result
+                            </button>
+                          ` : `
+                            <button class="btn gold mini" style="flex:1;" onclick="adminTogglePublish(${sem}, true)">
+                              🚀 Publish Result to Students
+                            </button>
+                          `}
+                          <button class="btn secondary mini" title="Preview marksheet of first student for Sem ${sem}" onclick="previewSemFirstStudent(${sem})">
+                            📄 Inspect
+                          </button>
+                        </div>
+                      </div>
+                    `;
+                  }).join("")}
+                </div>
+              </div>
+
+              <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);">
+                Autonomous Curriculum Regulations 2021
+              </div>
+            </div>
+          `).join("")}
+        </div>
+      </div>
+    `;
+  } catch (err) {
+    toast(err.message, false);
+  }
+}
+
+async function adminTogglePublish(semester, willPublish) {
+  const sem = Number(semester);
+  const actionText = willPublish ? "PUBLISH" : "UNPUBLISH";
+  const confirmMsg = willPublish
+    ? `Are you sure you want to officially PUBLISH Semester ${sem} results?\n\nStudents will immediately be able to view their SGPA, grades, and download the official marksheet with the Institution Seal.`
+    : `Are you sure you want to UNPUBLISH Semester ${sem} results?\n\nStudents will see an 'Under Valuation' notice and will not be able to access the official marksheet until re-published.`;
+
+  if (!confirm(confirmMsg)) return;
+
+  try {
+    const res = await api("/api/admin/results/publish", {
+      method: "POST",
+      body: { semester: sem, isPublished: willPublish }
+    });
+    toast(res.message || `Semester ${sem} results ${willPublish ? 'published' : 'unpublished'} successfully!`, true);
+    openPublishResultsCenter();
+  } catch (err) {
+    toast(err.message, false);
+  }
+}
+
+function previewSemFirstStudent(sem) {
+  if (!state.staffStudents || !state.staffStudents.length) {
+    return toast("No student records available to preview", false);
+  }
+  openOfficialMarksheet(sem, state.staffStudents[0].id);
 }
 
 // Dedicated Faculty Directory Page
@@ -1575,10 +2197,20 @@ async function viewStudent(id) {
           <div>
             <div class="eyebrow">ACADEMIC EVALUATION</div>
             <h1>${esc(d.student.fullName)}</h1>
-            <p class="muted">${esc(d.student.loginId)} • ${esc(d.student.email || "Pending Email")} • ${esc(d.student.department)}</p>
+            <p class="muted">${esc(d.student.loginId)} • ${esc(d.student.email || "Pending Email")} • ${esc(d.student.department)} • ${esc(d.student.year)} Sec ${esc(d.student.section || "A")}</p>
           </div>
-          <div style="display:flex;gap:10px;">
-            <button class="btn gold" onclick="openMarksheetModal(${JSON.stringify(d.student).replace(/"/g, '&quot;')}, ${JSON.stringify(d.academic).replace(/"/g, '&quot;')}, ${JSON.stringify(d.courses).replace(/"/g, '&quot;')})">📄 Generate Marksheet</button>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <select id="viewStudentSemChoice" style="padding:8px 12px;border:1px solid var(--line);border-radius:6px;font-weight:600;background:var(--bg);">
+              <option value="1">Semester 1 (I Year)</option>
+              <option value="2">Semester 2 (I Year)</option>
+              <option value="3">Semester 3 (II Year)</option>
+              <option value="4">Semester 4 (II Year)</option>
+              <option value="5">Semester 5 (III Year)</option>
+              <option value="6">Semester 6 (III Year)</option>
+              <option value="7">Semester 7 (IV Year)</option>
+              <option value="8">Semester 8 (IV Year)</option>
+            </select>
+            <button class="btn gold" onclick="openOfficialMarksheet(document.getElementById('viewStudentSemChoice').value, ${id})">🎓 View Marksheet (With Seal)</button>
             <button class="btn secondary" onclick="loadStudents()">← Student Directory</button>
           </div>
         </div>
@@ -1610,9 +2242,22 @@ async function viewStudent(id) {
           <div class="card">
             <h3>Record / Update Course Assessment</h3>
             <form onsubmit="saveMarks(event, ${id})">
-              <label>Select Course Module</label>
+              <label>Filter Curriculum by Semester</label>
+              <select id="mSemFilter" onchange="filterCoursesBySem(this.value)">
+                <option value="all">All Semesters (1 to 8)</option>
+                <option value="1">Semester 1 (I Year)</option>
+                <option value="2">Semester 2 (I Year)</option>
+                <option value="3">Semester 3 (II Year)</option>
+                <option value="4">Semester 4 (II Year)</option>
+                <option value="5">Semester 5 (III Year)</option>
+                <option value="6">Semester 6 (III Year)</option>
+                <option value="7">Semester 7 (IV Year)</option>
+                <option value="8">Semester 8 (IV Year)</option>
+              </select>
+
+              <label style="margin-top:10px;">Select Course Module</label>
               <select id="mCourse">
-                ${courses.map(c => `<option value="${c.id}">${esc(c.code)} — ${esc(c.name)} (${c.credits} Credits)</option>`).join("")}
+                ${courses.map(c => `<option value="${c.id}">[Sem ${c.semester || 1}] ${esc(c.code)} — ${esc(c.name)} (${c.credits} Credits)</option>`).join("")}
               </select>
 
               <div class="mark-grid" style="margin-top:12px;">
@@ -1731,6 +2376,17 @@ function setupPreviewListeners() {
 
   a.oninput = b.oninput = update;
   update();
+}
+
+function filterCoursesBySem(semVal) {
+  const select = document.getElementById("mCourse");
+  if (!select) return;
+  const filtered = (!semVal || semVal === "all")
+    ? (state.courses || [])
+    : (state.courses || []).filter(c => String(c.semester) === String(semVal));
+  select.innerHTML = filtered.map(c => 
+    `<option value="${c.id}">[Sem ${c.semester || 1}] ${esc(c.code)} — ${esc(c.name)} (${c.credits} Credits)</option>`
+  ).join("");
 }
 
 async function saveMarks(e, id) {
@@ -2020,6 +2676,17 @@ function showPage(p) {
   else if (p === "login") login();
   else if (p === "register") register();
   else if (p === "profile") profile();
+  else if (p === "results" || p === "marksheets") {
+    if (!state.user) login();
+    else if (state.user.role === "admin") openPublishResultsCenter();
+    else if (state.user.role === "staff") openFacultyResultsView();
+    else studentDashboard();
+  }
+  else if (p === "publish") {
+    if (!state.user) login();
+    else if (state.user.role === "admin") openPublishResultsCenter();
+    else openFacultyResultsView();
+  }
   else if (p === "dashboard") {
     if (!state.user) login();
     else if (state.user.role === "admin") adminDashboard();

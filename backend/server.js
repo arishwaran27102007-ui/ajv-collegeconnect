@@ -431,21 +431,114 @@ app.get("/api/staff/students/:id", auth, role("staff", "admin"), async (req, res
   }
 });
 
-app.get("/api/courses", auth, role("staff", "admin"), async (_req, res) => {
+app.get("/api/courses", auth, async (req, res) => {
   try {
-    const courses = await db.getCourses();
+    const semester = req.query.semester ? Number(req.query.semester) : null;
+    const department = req.query.department || null;
+    const courses = await db.getCourses(semester, department);
     res.json(courses);
   } catch (e) {
     res.status(500).json({ message: "Server error" });
   }
 });
 
+// -------------------------------------------------------------
+// Official Result Publishing (Admin Only) & Semester Marksheets
+// -------------------------------------------------------------
+
+// Get overall publication status of all 8 semesters
+app.get("/api/results/status", auth, async (_req, res) => {
+  try {
+    const publishedSemesters = await db.getPublishedSemesters();
+    res.json({ publishedSemesters });
+  } catch (e) {
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Admin-only: Publish or Unpublish semester results
+app.post("/api/admin/results/publish", auth, role("admin"), async (req, res) => {
+  const semester = Number(req.body.semester);
+  const isPublished = Boolean(req.body.isPublished);
+
+  if (!semester || semester < 1 || semester > 8) {
+    return res.status(400).json({ message: "Valid semester (1 to 8) is required." });
+  }
+
+  try {
+    const adminUser = await db.findUserById(req.user.id);
+    const publisherName = adminUser ? adminUser.fullName : "AJV Controller of Examinations";
+    const status = await db.setSemesterPublishStatus(semester, isPublished, publisherName);
+
+    // Post an announcement when results are officially published
+    if (isPublished) {
+      await db.createAnnouncement(
+        `Official Result Published: Semester ${semester}`,
+        `The Controller of Examinations has officially published the semester ${semester} results. Students and faculty can now view statements of grades and download official marksheets with the institutional seal.`
+      ).catch(() => {});
+    }
+
+    res.json({
+      message: isPublished
+        ? `Semester ${semester} results published successfully! Marksheets with institutional seal are now active.`
+        : `Semester ${semester} results unpublished.`,
+      status
+    });
+  } catch (e) {
+    console.error("[Publish Results Error]:", e);
+    res.status(500).json({ message: "Failed to update publication status." });
+  }
+});
+
+// View Semester Result & Marksheet (Accessible by Student, Faculty, and Admin)
+app.get("/api/results/semester/:semester", auth, async (req, res) => {
+  const semester = Number(req.params.semester);
+  if (!semester || semester < 1 || semester > 8) {
+    return res.status(400).json({ message: "Valid semester (1 to 8) is required." });
+  }
+
+  let studentId = req.user.id;
+  if (req.user.role === "staff" || req.user.role === "admin") {
+    studentId = req.query.studentId ? Number(req.query.studentId) : req.user.id;
+  }
+
+  try {
+    const student = await db.findUserById(studentId);
+    if (!student || student.role !== "student") {
+      return res.status(404).json({ message: "Student record not found." });
+    }
+
+    const isPublished = await db.isSemesterPublished(semester);
+
+    // If student is requesting and semester is not published by admin, deny display
+    if (req.user.role === "student" && !isPublished) {
+      return res.json({
+        isPublished: false,
+        semester,
+        studentName: student.fullName,
+        registerNo: student.registerNo,
+        message: `Semester ${semester} result has not been published yet by the Controller of Examinations. Please check back after official announcement.`
+      });
+    }
+
+    const result = await db.getSemesterResult(studentId, semester);
+    if (!result) return res.status(404).json({ message: "Result data unavailable." });
+
+    res.json(result);
+  } catch (e) {
+    console.error("[Semester Result Error]:", e);
+    res.status(500).json({ message: "Failed to retrieve semester result." });
+  }
+});
+
+// Mark entry / update (Faculty and Admin)
 app.put("/api/staff/students/:id/marks", auth, role("staff", "admin"), async (req, res) => {
   const studentId = Number(req.params.id);
   const courseId = Number(req.body.courseId);
   const attendance = Number(req.body.attendance);
   const internalMark = Number(req.body.internalMark);
   const externalMark = Number(req.body.externalMark);
+  const semester = req.body.semester ? Number(req.body.semester) : null;
 
   if (![attendance, internalMark, externalMark].every(Number.isFinite)) {
     return res.status(400).json({ message: "Enter valid numeric marks." });
@@ -458,11 +551,11 @@ app.put("/api/staff/students/:id/marks", auth, role("staff", "admin"), async (re
     const student = await db.findUserById(studentId);
     if (!student || student.role !== "student") return res.status(404).json({ message: "Student not found." });
 
-    const recordId = await db.upsertEnrollment(studentId, courseId, { attendance, internalMark, externalMark });
+    const recordId = await db.upsertEnrollment(studentId, courseId, { attendance, internalMark, externalMark, semester });
     const academic = await db.recalculateAcademic(studentId);
 
     res.json({
-      message: "Marks saved. Percentage, grade and CGPA updated automatically.",
+      message: "Marks saved successfully. Grades, SGPA and CGPA calculated.",
       record: { id: recordId },
       academic
     });

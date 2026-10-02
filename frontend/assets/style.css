@@ -351,44 +351,226 @@ dialog::backdrop {
 .modal-body { padding: 24px; max-height: 75vh; overflow-y: auto; }
 .modal-footer { padding: 16px 24px; background: #f8fafc; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 10px; }
 
-/* Printable Mark Sheet Certificate */
+/* Printable Mark Sheet Certificate & Official Seal */
 .certificate {
   background: #fff;
-  padding: 24px;
+  padding: 30px;
   color: #0f172a;
+  border: 4px double #081b2f;
+  border-radius: 4px;
+  position: relative;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
 }
 .cert-header {
   text-align: center;
   border-bottom: 2px solid #081b2f;
   padding-bottom: 16px;
   margin-bottom: 20px;
+  position: relative;
 }
-.cert-header img { width: 70px; height: 70px; border-radius: 50%; object-fit: cover; }
-.cert-header h2 { font-size: 22px; color: var(--navy); margin: 6px 0 2px; text-transform: uppercase; letter-spacing: 0.5px; }
-.cert-header p { font-size: 11px; color: #475569; margin: 2px 0; }
-.cert-title { font-size: 15px; font-weight: 900; letter-spacing: 1px; color: var(--gold); text-transform: uppercase; margin-top: 8px; }
+.cert-header img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; border: 2px solid var(--gold); }
+.cert-header h2 { font-size: 22px; color: var(--navy); margin: 6px 0 2px; text-transform: uppercase; letter-spacing: 0.8px; font-weight: 900; }
+.cert-header p { font-size: 11px; color: #475569; margin: 2px 0; font-weight: 600; }
+.cert-title { font-size: 15px; font-weight: 900; letter-spacing: 1.2px; color: var(--gold); text-transform: uppercase; margin-top: 8px; }
 
-.cert-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 20px; font-size: 12px; margin-bottom: 18px; padding: 12px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; }
-.cert-meta div { display: flex; justify-content: space-between; }
+.cert-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 24px; font-size: 12px; margin-bottom: 18px; padding: 14px 18px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; }
+.cert-meta div { display: flex; justify-content: space-between; border-bottom: 1px dashed #e2e8f0; padding-bottom: 4px; }
 .cert-meta span { color: #64748b; font-weight: 600; }
-.cert-meta b { color: #0f172a; }
+.cert-meta b { color: #0f172a; font-weight: 800; }
 
-.cert-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 18px; text-align: center; }
+.cert-summary { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 18px; text-align: center; }
 .cert-summary-box { padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; }
-.cert-summary-box span { font-size: 10px; color: #64748b; text-transform: uppercase; display: block; }
-.cert-summary-box b { font-size: 20px; color: var(--navy); display: block; margin-top: 2px; }
+.cert-summary-box span { font-size: 10px; color: #64748b; text-transform: uppercase; display: block; font-weight: 700; }
+.cert-summary-box b { font-size: 18px; color: var(--navy); display: block; margin-top: 2px; }
 
-.cert-signatures { margin-top: 48px; display: flex; justify-content: space-between; padding: 0 24px; font-size: 12px; font-weight: 700; color: #334155; }
-.cert-sign-line { width: 160px; border-top: 1px solid #94a3b8; text-align: center; padding-top: 6px; }
+/* Institutional Bottom Row with Verification Barcode, Seal, and Signatures */
+.cert-bottom-row {
+  margin-top: 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #e2e8f0;
+}
+.cert-verify-block {
+  font-size: 10px;
+  color: #64748b;
+  max-width: 180px;
+}
+.cert-barcode {
+  letter-spacing: 3px;
+  font-family: monospace;
+  font-weight: 900;
+  font-size: 14px;
+  color: #0f172a;
+  background: #f1f5f9;
+  padding: 4px 8px;
+  border: 1px solid #cbd5e1;
+  display: inline-block;
+  margin-bottom: 4px;
+}
+
+/* Authentic Embossed Institution Seal with Ribbons */
+.institution-seal-badge {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  user-select: none;
+}
+.seal-svg {
+  filter: drop-shadow(0 6px 14px rgba(8, 27, 47, 0.25));
+  position: relative;
+  z-index: 2;
+}
+.seal-ribbons {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: -16px;
+  position: relative;
+  z-index: 1;
+}
+.ribbon-left, .ribbon-right {
+  width: 20px;
+  height: 36px;
+  background: linear-gradient(180deg, #991b1b, #7f1d1d);
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%);
+  border-top: 1px solid #d4af37;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+}
+.ribbon-left { transform: rotate(12deg); }
+.ribbon-right { transform: rotate(-12deg); }
+
+.cert-signatures {
+  display: flex;
+  gap: 24px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+}
+.cert-sign-line {
+  width: 130px;
+  border-top: 1.5px solid #475569;
+  text-align: center;
+  padding-top: 6px;
+}
+
+/* 4 Years & 8 Semesters Navigation Container */
+.year-sem-container {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 14px;
+}
+.year-group {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px;
+}
+.year-label {
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--navy);
+  letter-spacing: 0.8px;
+  margin-bottom: 8px;
+  text-align: center;
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 4px;
+}
+.sem-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sem-btn {
+  background: #fff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 10px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  transition: all 0.15s ease;
+}
+.sem-btn:hover {
+  background: #f1f5f9;
+  border-color: var(--blue);
+}
+.sem-btn.active {
+  background: var(--navy);
+  color: #fff;
+  border-color: var(--navy);
+  box-shadow: 0 4px 12px rgba(8, 27, 47, 0.2);
+}
+.tag-pub {
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+.tag-unpub {
+  background: #f1f5f9;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+.sem-btn.active .tag-pub {
+  background: #15803d;
+  color: #fff;
+}
+.sem-btn.active .tag-unpub {
+  background: rgba(255,255,255,0.2);
+  color: #cbd5e1;
+}
+
+/* Admin Results Publication Executive Grid */
+.admin-pub-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-top: 14px;
+}
+.admin-pub-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+  transition: transform 0.15s, border-color 0.15s;
+}
+.admin-pub-card:hover {
+  border-color: var(--blue);
+  transform: translateY(-2px);
+}
+.admin-pub-card.is-published {
+  border-left: 4px solid #10b981;
+}
+.admin-pub-card.is-unpublished {
+  border-left: 4px solid #cbd5e1;
+}
 
 /* Print Media Query */
 @media print {
-  body { background: #fff !important; color: #000 !important; }
-  .topbar, footer, #toast, .actions, .btn, .tabs, nav, .install-app-btn, .modal-header button, .modal-footer { display: none !important; }
+  body { background: #fff !important; color: #000 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+  .topbar, footer, #toast, .actions, .btn, .tabs, nav, .install-app-btn, .modal-header button, .modal-footer, .year-sem-container, .notice { display: none !important; }
   main, .dashboard, .certificate, dialog { padding: 0 !important; margin: 0 !important; width: 100% !important; max-width: 100% !important; border: none !important; box-shadow: none !important; }
   dialog { display: block !important; position: static !important; }
+  .certificate { border: 2px solid #081b2f !important; padding: 20px !important; }
   table { border: 1px solid #000 !important; min-width: 100% !important; }
   th, td { border: 1px solid #ccc !important; padding: 6px 8px !important; color: #000 !important; }
+  .institution-seal-badge { display: flex !important; }
+  .ribbon-left, .ribbon-right { background: #991b1b !important; }
 }
 
 footer { background: var(--navy); color: #d8e4ef; padding: 25px 7vw; display: flex; justify-content: space-between; gap: 15px; flex-wrap: wrap; font-size: 13px; }

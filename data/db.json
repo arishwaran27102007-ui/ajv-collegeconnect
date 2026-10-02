@@ -1,0 +1,1001 @@
+{
+  "meta": {
+    "college": "AJV College of Engineering",
+    "version": 3
+  },
+  "counters": {
+    "student": 7,
+    "faculty": 3
+  },
+  "users": [
+    {
+      "id": 1,
+      "loginId": "ADMIN001",
+      "passwordHash": "$2a$10$qItnXLk4ef.SauR9ljbIge2SoVqmMXj/vtQv5ocNe0/dat1aTw.Pa",
+      "role": "admin",
+      "fullName": "AJV Administrator",
+      "email": "admin@ajv.edu",
+      "phone": "+91 90000 00001",
+      "registerNo": "ADMIN001",
+      "department": "Administration",
+      "year": "Staff",
+      "section": "Office",
+      "status": "active"
+    },
+    {
+      "id": 2,
+      "loginId": "FAC001",
+      "passwordHash": "$2a$10$wCjtYA/1MAVoQ8BVeQXLJul/HPySCksUa/l8GHxfLt1lBnGDfKfi6",
+      "role": "staff",
+      "fullName": "Dr. Priya Faculty",
+      "email": "faculty01@ajv.edu",
+      "phone": "+91 90000 00002",
+      "registerNo": "FAC001",
+      "department": "Information Technology",
+      "year": "Staff",
+      "section": "Faculty",
+      "status": "active"
+    },
+    {
+      "id": 3,
+      "loginId": "AJVSTU001",
+      "passwordHash": "$2a$10$7iqzH4iT8SEBsgn6W2ii1uZSljrhuLSStFSJjLhq9VFevFrOLLg8.",
+      "role": "student",
+      "fullName": "Ananya Kumar",
+      "email": "stu001@ajv.edu",
+      "phone": "+91 90000 00003",
+      "parentName": "R. Kumar",
+      "dob": "2007-04-15",
+      "gender": "Female",
+      "registerNo": "AJVSTU001",
+      "department": "Information Technology",
+      "year": "I Year",
+      "section": "A",
+      "address": "Coimbatore, Tamil Nadu",
+      "cgpa": 9.59,
+      "overallPercentage": 89.2,
+      "attendance": 90.8,
+      "status": "active"
+    },
+    {
+      "id": 4,
+      "loginId": "AJVSTU002",
+      "passwordHash": "$2a$10$vbMZUU0WDCv/5Vbga0eQ7uhnCZjVxUZDGoI8DIcLctSmFlXb42BbG",
+      "role": "student",
+      "fullName": "Kavin Raj",
+      "email": "stu002@ajv.edu",
+      "phone": "+91 90000 00004",
+      "parentName": "S. Raj",
+      "dob": "2007-08-20",
+      "gender": "Male",
+      "registerNo": "AJVSTU002",
+      "department": "Computer Science and Engineering",
+      "year": "I Year",
+      "section": "A",
+      "address": "Tiruppur, Tamil Nadu",
+      "cgpa": 8.67,
+      "overallPercentage": 83.67,
+      "attendance": 86.67,
+      "status": "active"
+    },
+    {
+      "id": 5,
+      "loginId": "AJVSTU003",
+      "passwordHash": "$2a$10$Cl1tU/q4Vdn./OoQMhwOx.TO7mCJS.xYMEl/qEeShUdBnL8yuxzcy",
+      "role": "student",
+      "fullName": "Meera S",
+      "email": "stu003@ajv.edu",
+      "phone": "+91 90000 00005",
+      "parentName": "S. Sekar",
+      "dob": "2007-02-12",
+      "gender": "Female",
+      "registerNo": "AJVSTU003",
+      "department": "Information Technology",
+      "year": "I Year",
+      "section": "B",
+      "address": "Erode, Tamil Nadu",
+      "cgpa": 10,
+      "overallPercentage": 94.67,
+      "attendance": 94.67,
+      "status": "active"
+    },
+    {
+      "id": 6,
+      "loginId": "AJVSTU004",
+      "passwordHash": "$2a$10$2Gdvn2K2hSkPLnJThlIFK..zZpEjx8TUSDgz4R.hpNb8tJi.pYSfW",
+      "role": "student",
+      "fullName": "Arishwaran J",
+      "email": "arishwaran27102007@gmail.com",
+      "phone": "8825695844",
+      "parentName": "Jeyaraman",
+      "dob": "2007-10-27",
+      "gender": "Male",
+      "registerNo": "AJVSTU004",
+      "department": "Information Technology",
+      "year": "II Year",
+      "section": "A",
+      "address": "13,Kela mutharamman Kovil street North Authoor",
+      "status": "active",
+      "cgpa": 10,
+      "overallPercentage": 94.67,
+      "attendance": 94.17
+    },
+    {
+      "id": 7,
+      "loginId": "AJVSTU005",
+      "passwordHash": "$2a$10$xGApikM5DpIdrDCnuCL46ueiTj4L7p8y4mb4FwIWYfNsm3puNT212",
+      "role": "student",
+      "fullName": "Angelin",
+      "email": "angelin@ajv.edu",
+      "phone": "9456872210",
+      "parentName": "Arun",
+      "dob": "2008-03-03",
+      "gender": "Female",
+      "registerNo": "AJVSTU005",
+      "department": "Information Technology",
+      "year": "II Year",
+      "section": "A",
+      "address": "Sri Ramakrinshna institute if technology",
+      "status": "active",
+      "cgpa": 0,
+      "overallPercentage": 0,
+      "attendance": 0
+    },
+    {
+      "id": 8,
+      "loginId": "AJVSTU006",
+      "passwordHash": "$2a$10$n1PsXI5EPoap0NYt5eLpouNk.tR3Bf4w/7m/Znj6yzLboEift6LsG",
+      "role": "student",
+      "fullName": "Vigneshwaran M",
+      "email": "vigneshwaranm0006@ajv.edu",
+      "phone": "9876543210",
+      "parentName": "M. Mohan",
+      "dob": "2007-06-18",
+      "gender": "Male",
+      "registerNo": "AJVSTU006",
+      "department": "Computer Science and Engineering",
+      "year": "I Year",
+      "section": "A",
+      "address": "Salem, Tamil Nadu",
+      "status": "active",
+      "cgpa": 0,
+      "overallPercentage": 0,
+      "attendance": 0
+    },
+    {
+      "id": 9,
+      "loginId": "FAC002",
+      "passwordHash": "$2a$10$.7UI8X7Qoz5PP.CDRFVyh.mfgySi3aBQRxQKfeP0QZ7f1KiuC2uka",
+      "role": "staff",
+      "fullName": "Prof. Anbarasan S",
+      "email": "anbarasan@ajv.edu",
+      "phone": "9840012345",
+      "registerNo": "FAC002",
+      "department": "Information Technology",
+      "year": "Staff",
+      "section": "HOD / IT",
+      "status": "active",
+      "cgpa": 0,
+      "overallPercentage": 0,
+      "attendance": 0
+    },
+    {
+      "id": 10,
+      "loginId": "AJVSTU007",
+      "passwordHash": "$2a$10$f0QuTPJQt7sVrw33Eh03aerrm4eykoYz2IpI.oCHGuFgb.JTHFicG",
+      "role": "student",
+      "fullName": "Kavitha R",
+      "email": "kavithar0007@ajv.edu",
+      "phone": "9876543219",
+      "parentName": "Ramasamy",
+      "dob": "2005-08-15",
+      "gender": "Female",
+      "registerNo": "AJVSTU007",
+      "department": "Information Technology",
+      "year": "I Year",
+      "section": "A",
+      "address": "Coimbatore, Tamil Nadu",
+      "status": "active",
+      "cgpa": 0,
+      "overallPercentage": 0,
+      "attendance": 0,
+      "mustChangePassword": false
+    },
+    {
+      "id": 11,
+      "loginId": "AJVSTU008",
+      "passwordHash": ".",
+      "role": "student",
+      "fullName": "Rahul Verma",
+      "email": "rahul0008@ajv.edu",
+      "phone": "9840011223",
+      "parentName": "M. Verma",
+      "dob": "2005-11-24",
+      "gender": "Male",
+      "registerNo": "AJVSTU008",
+      "department": "Information Technology",
+      "year": "III Year",
+      "section": "A",
+      "address": "Chennai, Tamil Nadu",
+      "cgpa": 9.15,
+      "overallPercentage": 86.4,
+      "attendance": 91.2,
+      "status": "active"
+    },
+    {
+      "id": 12,
+      "loginId": "AJVSTU009",
+      "passwordHash": ".",
+      "role": "student",
+      "fullName": "Sanjay Krishnan",
+      "email": "sanjay0009@ajv.edu",
+      "phone": "9840022334",
+      "parentName": "K. Krishnan",
+      "dob": "2004-09-12",
+      "gender": "Male",
+      "registerNo": "AJVSTU009",
+      "department": "Information Technology",
+      "year": "IV Year",
+      "section": "A",
+      "address": "Madurai, Tamil Nadu",
+      "cgpa": 9.42,
+      "overallPercentage": 88.9,
+      "attendance": 93.5,
+      "status": "active"
+    }
+  ],
+  "courses": [
+    {
+      "id": 1,
+      "code": "HS3151",
+      "name": "Communicative English",
+      "credits": 3,
+      "semester": 1,
+      "department": "Common"
+    },
+    {
+      "id": 2,
+      "code": "MA3151",
+      "name": "Matrices and Calculus",
+      "credits": 4,
+      "semester": 1,
+      "department": "Common"
+    },
+    {
+      "id": 3,
+      "code": "PH3151",
+      "name": "Engineering Physics",
+      "credits": 3,
+      "semester": 1,
+      "department": "Common"
+    },
+    {
+      "id": 4,
+      "code": "CY3151",
+      "name": "Engineering Chemistry",
+      "credits": 3,
+      "semester": 1,
+      "department": "Common"
+    },
+    {
+      "id": 5,
+      "code": "GE3151",
+      "name": "Problem Solving and Python Programming",
+      "credits": 3,
+      "semester": 1,
+      "department": "Common"
+    },
+    {
+      "id": 6,
+      "code": "GE3171",
+      "name": "Python Programming Laboratory",
+      "credits": 2,
+      "semester": 1,
+      "department": "Common"
+    },
+    {
+      "id": 7,
+      "code": "HS3251",
+      "name": "Professional English",
+      "credits": 2,
+      "semester": 2,
+      "department": "Common"
+    },
+    {
+      "id": 8,
+      "code": "MA3251",
+      "name": "Statistics and Numerical Methods",
+      "credits": 4,
+      "semester": 2,
+      "department": "Common"
+    },
+    {
+      "id": 9,
+      "code": "PH3256",
+      "name": "Physics for Information Science",
+      "credits": 3,
+      "semester": 2,
+      "department": "Common"
+    },
+    {
+      "id": 10,
+      "code": "BE3251",
+      "name": "Basic Electrical and Electronics Engineering",
+      "credits": 3,
+      "semester": 2,
+      "department": "Common"
+    },
+    {
+      "id": 11,
+      "code": "CS3251",
+      "name": "Programming in C",
+      "credits": 3,
+      "semester": 2,
+      "department": "Common"
+    },
+    {
+      "id": 12,
+      "code": "GE3271",
+      "name": "Engineering Practices Laboratory",
+      "credits": 2,
+      "semester": 2,
+      "department": "Common"
+    },
+    {
+      "id": 13,
+      "code": "MA3354",
+      "name": "Discrete Mathematics",
+      "credits": 4,
+      "semester": 3,
+      "department": "Common"
+    },
+    {
+      "id": 14,
+      "code": "CS3351",
+      "name": "Digital Principles & Computer Organization",
+      "credits": 4,
+      "semester": 3,
+      "department": "Information Technology"
+    },
+    {
+      "id": 15,
+      "code": "CS3352",
+      "name": "Foundations of Data Science",
+      "credits": 3,
+      "semester": 3,
+      "department": "Information Technology"
+    },
+    {
+      "id": 16,
+      "code": "CS3301",
+      "name": "Data Structures",
+      "credits": 3,
+      "semester": 3,
+      "department": "Information Technology"
+    },
+    {
+      "id": 17,
+      "code": "CS3391",
+      "name": "Object Oriented Programming",
+      "credits": 3,
+      "semester": 3,
+      "department": "Information Technology"
+    },
+    {
+      "id": 18,
+      "code": "CS3381",
+      "name": "Data Structures Laboratory",
+      "credits": 2,
+      "semester": 3,
+      "department": "Information Technology"
+    },
+    {
+      "id": 19,
+      "code": "CS3452",
+      "name": "Theory of Computation",
+      "credits": 3,
+      "semester": 4,
+      "department": "Information Technology"
+    },
+    {
+      "id": 20,
+      "code": "CS3491",
+      "name": "Artificial Intelligence & Machine Learning",
+      "credits": 4,
+      "semester": 4,
+      "department": "Information Technology"
+    },
+    {
+      "id": 21,
+      "code": "CS3492",
+      "name": "Database Management Systems",
+      "credits": 3,
+      "semester": 4,
+      "department": "Information Technology"
+    },
+    {
+      "id": 22,
+      "code": "IT3401",
+      "name": "Web Essentials",
+      "credits": 3,
+      "semester": 4,
+      "department": "Information Technology"
+    },
+    {
+      "id": 23,
+      "code": "CS3461",
+      "name": "Operating Systems",
+      "credits": 3,
+      "semester": 4,
+      "department": "Information Technology"
+    },
+    {
+      "id": 24,
+      "code": "CS3481",
+      "name": "DBMS Laboratory",
+      "credits": 2,
+      "semester": 4,
+      "department": "Information Technology"
+    },
+    {
+      "id": 25,
+      "code": "CS3591",
+      "name": "Computer Networks",
+      "credits": 4,
+      "semester": 5,
+      "department": "Information Technology"
+    },
+    {
+      "id": 26,
+      "code": "IT3501",
+      "name": "Full Stack Web Development",
+      "credits": 4,
+      "semester": 5,
+      "department": "Information Technology"
+    },
+    {
+      "id": 27,
+      "code": "CS3551",
+      "name": "Distributed Computing",
+      "credits": 3,
+      "semester": 5,
+      "department": "Information Technology"
+    },
+    {
+      "id": 28,
+      "code": "CCS334",
+      "name": "Big Data Analytics",
+      "credits": 3,
+      "semester": 5,
+      "department": "Information Technology"
+    },
+    {
+      "id": 29,
+      "code": "MX3084",
+      "name": "Disaster Risk Reduction and Management",
+      "credits": 2,
+      "semester": 5,
+      "department": "Common"
+    },
+    {
+      "id": 30,
+      "code": "IT3511",
+      "name": "Full Stack Laboratory",
+      "credits": 2,
+      "semester": 5,
+      "department": "Information Technology"
+    },
+    {
+      "id": 31,
+      "code": "CCS335",
+      "name": "Cloud Computing",
+      "credits": 3,
+      "semester": 6,
+      "department": "Information Technology"
+    },
+    {
+      "id": 32,
+      "code": "CS3691",
+      "name": "Embedded Systems and IoT",
+      "credits": 4,
+      "semester": 6,
+      "department": "Information Technology"
+    },
+    {
+      "id": 33,
+      "code": "IT3601",
+      "name": "Mobile Application Development",
+      "credits": 3,
+      "semester": 6,
+      "department": "Information Technology"
+    },
+    {
+      "id": 34,
+      "code": "CCS356",
+      "name": "Object Oriented Analysis and Design",
+      "credits": 3,
+      "semester": 6,
+      "department": "Information Technology"
+    },
+    {
+      "id": 35,
+      "code": "OEI301",
+      "name": "Open Elective I: Robotics & Automation",
+      "credits": 3,
+      "semester": 6,
+      "department": "Common"
+    },
+    {
+      "id": 36,
+      "code": "IT3611",
+      "name": "Mobile App Development Laboratory",
+      "credits": 2,
+      "semester": 6,
+      "department": "Information Technology"
+    },
+    {
+      "id": 37,
+      "code": "IT3701",
+      "name": "Cryptography & Cyber Security",
+      "credits": 4,
+      "semester": 7,
+      "department": "Information Technology"
+    },
+    {
+      "id": 38,
+      "code": "CCS349",
+      "name": "Deep Learning Architectures",
+      "credits": 3,
+      "semester": 7,
+      "department": "Information Technology"
+    },
+    {
+      "id": 39,
+      "code": "OEI302",
+      "name": "Open Elective II: Renewable Energy Systems",
+      "credits": 3,
+      "semester": 7,
+      "department": "Common"
+    },
+    {
+      "id": 40,
+      "code": "PE301",
+      "name": "Professional Elective: Blockchain & Fintech",
+      "credits": 3,
+      "semester": 7,
+      "department": "Information Technology"
+    },
+    {
+      "id": 41,
+      "code": "IT3711",
+      "name": "Project Work Phase I",
+      "credits": 3,
+      "semester": 7,
+      "department": "Information Technology"
+    },
+    {
+      "id": 42,
+      "code": "PE302",
+      "name": "Professional Elective: Quantum Computing",
+      "credits": 3,
+      "semester": 8,
+      "department": "Information Technology"
+    },
+    {
+      "id": 43,
+      "code": "IT3811",
+      "name": "Project Work Phase II",
+      "credits": 6,
+      "semester": 8,
+      "department": "Information Technology"
+    },
+    {
+      "id": 44,
+      "code": "IT3812",
+      "name": "Internship & Comprehensive Technical Viva",
+      "credits": 2,
+      "semester": 8,
+      "department": "Information Technology"
+    }
+  ],
+  "enrollments": [
+    {
+      "id": 1,
+      "studentId": 3,
+      "courseId": 1,
+      "semester": 1,
+      "attendance": 92,
+      "internalMark": 36,
+      "externalMark": 54,
+      "totalMark": 90,
+      "percentage": 90,
+      "grade": "O",
+      "gradePoint": 10
+    },
+    {
+      "id": 2,
+      "studentId": 3,
+      "courseId": 2,
+      "semester": 1,
+      "attendance": 89,
+      "internalMark": 34,
+      "externalMark": 51,
+      "totalMark": 85,
+      "percentage": 85,
+      "grade": "A+",
+      "gradePoint": 9
+    },
+    {
+      "id": 3,
+      "studentId": 3,
+      "courseId": 3,
+      "semester": 1,
+      "attendance": 94,
+      "internalMark": 37,
+      "externalMark": 55,
+      "totalMark": 92,
+      "percentage": 92,
+      "grade": "O",
+      "gradePoint": 10
+    },
+    {
+      "id": 4,
+      "studentId": 3,
+      "courseId": 4,
+      "semester": 1,
+      "attendance": 91,
+      "internalMark": 38,
+      "externalMark": 56,
+      "totalMark": 94,
+      "percentage": 94,
+      "grade": "O",
+      "gradePoint": 10
+    },
+    {
+      "id": 5,
+      "studentId": 3,
+      "courseId": 5,
+      "semester": 1,
+      "attendance": 88,
+      "internalMark": 35,
+      "externalMark": 50,
+      "totalMark": 85,
+      "percentage": 85,
+      "grade": "A+",
+      "gradePoint": 9
+    },
+    {
+      "id": 6,
+      "studentId": 3,
+      "courseId": 6,
+      "semester": 1,
+      "attendance": 96,
+      "internalMark": 39,
+      "externalMark": 58,
+      "totalMark": 97,
+      "percentage": 97,
+      "grade": "O",
+      "gradePoint": 10
+    },
+    {
+      "id": 7,
+      "studentId": 3,
+      "courseId": 7,
+      "semester": 2,
+      "attendance": 90,
+      "internalMark": 35,
+      "externalMark": 53,
+      "totalMark": 88,
+      "percentage": 88,
+      "grade": "A+",
+      "gradePoint": 9
+    },
+    {
+      "id": 8,
+      "studentId": 3,
+      "courseId": 8,
+      "semester": 2,
+      "attendance": 93,
+      "internalMark": 38,
+      "externalMark": 54,
+      "totalMark": 92,
+      "percentage": 92,
+      "grade": "O",
+      "gradePoint": 10
+    },
+    {
+      "id": 9,
+      "studentId": 3,
+      "courseId": 9,
+      "semester": 2,
+      "attendance": 87,
+      "internalMark": 33,
+      "externalMark": 49,
+      "totalMark": 82,
+      "percentage": 82,
+      "grade": "A+",
+      "gradePoint": 9
+    },
+    {
+      "id": 10,
+      "studentId": 3,
+      "courseId": 10,
+      "semester": 2,
+      "attendance": 89,
+      "internalMark": 36,
+      "externalMark": 52,
+      "totalMark": 88,
+      "percentage": 88,
+      "grade": "A+",
+      "gradePoint": 9
+    },
+    {
+      "id": 11,
+      "studentId": 3,
+      "courseId": 11,
+      "semester": 2,
+      "attendance": 95,
+      "internalMark": 39,
+      "externalMark": 57,
+      "totalMark": 96,
+      "percentage": 96,
+      "grade": "O",
+      "gradePoint": 10
+    },
+    {
+      "id": 12,
+      "studentId": 3,
+      "courseId": 12,
+      "semester": 2,
+      "attendance": 98,
+      "internalMark": 40,
+      "externalMark": 59,
+      "totalMark": 99,
+      "percentage": 99,
+      "grade": "O",
+      "gradePoint": 10
+    },
+    {
+      "id": 13,
+      "studentId": 4,
+      "courseId": 1,
+      "semester": 1,
+      "attendance": 85,
+      "internalMark": 32,
+      "externalMark": 48,
+      "totalMark": 80,
+      "percentage": 80,
+      "grade": "A+",
+      "gradePoint": 9
+    },
+    {
+      "id": 14,
+      "studentId": 4,
+      "courseId": 2,
+      "semester": 1,
+      "attendance": 88,
+      "internalMark": 34,
+      "externalMark": 50,
+      "totalMark": 84,
+      "percentage": 84,
+      "grade": "A+",
+      "gradePoint": 9
+    },
+    {
+      "id": 15,
+      "studentId": 4,
+      "courseId": 3,
+      "semester": 1,
+      "attendance": 82,
+      "internalMark": 30,
+      "externalMark": 46,
+      "totalMark": 76,
+      "percentage": 76,
+      "grade": "A",
+      "gradePoint": 8
+    },
+    {
+      "id": 16,
+      "studentId": 4,
+      "courseId": 4,
+      "semester": 1,
+      "attendance": 86,
+      "internalMark": 33,
+      "externalMark": 49,
+      "totalMark": 82,
+      "percentage": 82,
+      "grade": "A+",
+      "gradePoint": 9
+    },
+    {
+      "id": 17,
+      "studentId": 4,
+      "courseId": 5,
+      "semester": 1,
+      "attendance": 84,
+      "internalMark": 31,
+      "externalMark": 47,
+      "totalMark": 78,
+      "percentage": 78,
+      "grade": "A",
+      "gradePoint": 8
+    },
+    {
+      "id": 18,
+      "studentId": 4,
+      "courseId": 6,
+      "semester": 1,
+      "attendance": 90,
+      "internalMark": 36,
+      "externalMark": 54,
+      "totalMark": 90,
+      "percentage": 90,
+      "grade": "O",
+      "gradePoint": 10
+    },
+    {
+      "id": 19,
+      "studentId": 6,
+      "courseId": 1,
+      "semester": 1,
+      "attendance": 95,
+      "internalMark": 38,
+      "externalMark": 56,
+      "totalMark": 94,
+      "percentage": 94,
+      "grade": "O",
+      "gradePoint": 10,
+      "updatedAt": "2026-10-02T04:12:27.922Z"
+    },
+    {
+      "id": 20,
+      "studentId": 6,
+      "courseId": 2,
+      "semester": 1,
+      "attendance": 92,
+      "internalMark": 39,
+      "externalMark": 58,
+      "totalMark": 97,
+      "percentage": 97,
+      "grade": "O",
+      "gradePoint": 10,
+      "updatedAt": "2026-10-02T04:12:27.938Z"
+    },
+    {
+      "id": 21,
+      "studentId": 6,
+      "courseId": 3,
+      "semester": 1,
+      "attendance": 90,
+      "internalMark": 37,
+      "externalMark": 54,
+      "totalMark": 91,
+      "percentage": 91,
+      "grade": "O",
+      "gradePoint": 10,
+      "updatedAt": "2026-10-02T04:12:27.950Z"
+    },
+    {
+      "id": 22,
+      "studentId": 6,
+      "courseId": 4,
+      "semester": 1,
+      "attendance": 94,
+      "internalMark": 36,
+      "externalMark": 55,
+      "totalMark": 91,
+      "percentage": 91,
+      "grade": "O",
+      "gradePoint": 10,
+      "updatedAt": "2026-10-02T04:12:27.965Z"
+    },
+    {
+      "id": 23,
+      "studentId": 6,
+      "courseId": 5,
+      "semester": 1,
+      "attendance": 96,
+      "internalMark": 39,
+      "externalMark": 57,
+      "totalMark": 96,
+      "percentage": 96,
+      "grade": "O",
+      "gradePoint": 10,
+      "updatedAt": "2026-10-02T04:12:27.981Z"
+    },
+    {
+      "id": 24,
+      "studentId": 6,
+      "courseId": 6,
+      "semester": 1,
+      "attendance": 98,
+      "internalMark": 40,
+      "externalMark": 59,
+      "totalMark": 99,
+      "percentage": 99,
+      "grade": "O",
+      "gradePoint": 10,
+      "updatedAt": "2026-10-02T04:12:27.992Z"
+    }
+  ],
+  "announcements": [
+    {
+      "id": 1,
+      "title": "Internal Assessment",
+      "body": "Staff can now enter and update student marks from the Academic Records section.",
+      "createdAt": "2026-09-22T15:20:44.217Z"
+    },
+    {
+      "id": 2,
+      "title": "College Portal",
+      "body": "Student registration automatically generates a secure login ID.",
+      "createdAt": "2026-09-22T15:20:44.218Z"
+    },
+    {
+      "id": 3,
+      "title": "Test Symposium 2026",
+      "body": "National Level Technical Symposium registrations open.",
+      "createdAt": "2026-09-29T08:48:04.088Z"
+    },
+    {
+      "id": 4,
+      "title": "ASME Event",
+      "body": "coming saturday..",
+      "createdAt": "2026-09-29T10:12:22.000Z"
+    },
+    {
+      "id": 5,
+      "title": "Official Result Published: Semester 3",
+      "body": "The Controller of Examinations has officially published the semester 3 results. Students and faculty can now view statements of grades and download official marksheets with the institutional seal.",
+      "createdAt": "2026-10-02T03:59:29.881Z"
+    },
+    {
+      "id": 6,
+      "title": "Official Result Published: Semester 3",
+      "body": "The Controller of Examinations has officially published the semester 3 results. Students and faculty can now view statements of grades and download official marksheets with the institutional seal.",
+      "createdAt": "2026-10-02T04:10:49.365Z"
+    }
+  ],
+  "resultsPublication": {
+    "1": {
+      "isPublished": true,
+      "publishedAt": "2026-09-15T10:00:00.000Z",
+      "publishedBy": "AJV Controller of Examinations"
+    },
+    "2": {
+      "isPublished": true,
+      "publishedAt": "2026-09-20T11:00:00.000Z",
+      "publishedBy": "AJV Controller of Examinations"
+    },
+    "3": {
+      "isPublished": false,
+      "publishedAt": null,
+      "publishedBy": null
+    },
+    "4": {
+      "isPublished": false,
+      "publishedAt": null,
+      "publishedBy": null
+    },
+    "5": {
+      "isPublished": false,
+      "publishedAt": null,
+      "publishedBy": null
+    },
+    "6": {
+      "isPublished": false,
+      "publishedAt": null,
+      "publishedBy": null
+    },
+    "7": {
+      "isPublished": false,
+      "publishedAt": null,
+      "publishedBy": null
+    },
+    "8": {
+      "isPublished": false,
+      "publishedAt": null,
+      "publishedBy": null
+    }
+  }
+}
