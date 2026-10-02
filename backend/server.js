@@ -11,10 +11,19 @@ const PORT = Number(process.env.PORT || 5000);
 const JWT_SECRET = process.env.JWT_SECRET || "ajv-collegeconnect-local-secret";
 const FRONTEND = path.join(__dirname, "..", "frontend");
 
+app.set("trust proxy", true);
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
-app.use(express.static(FRONTEND));
+app.use(express.static(FRONTEND, {
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith(".html") || filePath.endsWith(".js") || filePath.endsWith("sw.js")) {
+      res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.setHeader("Pragma", "no-cache");
+      res.setHeader("Expires", "0");
+    }
+  }
+}));
 
 const departments = [
   "Information Technology",
@@ -31,40 +40,42 @@ function clean(v) { return String(v ?? "").trim(); }
 function getClientIp(req) {
   const forwarded = (req.headers["x-forwarded-for"] || "").split(",")[0].trim();
   const remote = req.socket ? (req.socket.remoteAddress || "") : "";
-  const raw = forwarded || remote;
+  const raw = forwarded || req.ip || remote;
   return raw.replace(/^::ffff:/, "").trim();
 }
 
-// IP / Host Authorization for Admin Console (strictly restricted to authorized IP 10.43.120.56 / localhost)
+// IP / Host Authorization for Admin Console (strictly restricted to authorized IP 10.43.120.56)
 function isAuthorizedAdminIP(req) {
   const clientIp = getClientIp(req);
   const host = (req.headers.host || "").split(":")[0].trim();
   const adminSecret = req.headers["x-admin-key"] || req.query.admin_key;
   const claimedIp = req.headers["x-client-ip"] || req.query.ip;
 
-  // Authorized Admin Device token or secret passkey
+  // 1. Authorized Admin Device token or secret passkey (from authorized device 10.43.120.56)
   if (
     adminSecret === "10.43.120.56" ||
+    claimedIp === "10.43.120.56" ||
     adminSecret === "ajv-admin-secure-2026" ||
     adminSecret === "Admin@123" ||
-    adminSecret === "ajv2026" ||
-    claimedIp === "10.43.120.56"
+    adminSecret === "ajv2026"
   ) {
     return true;
   }
 
-  // Active when directly accessed via 10.43.120.56, localhost, or local hotspot network
-  return (
-    host === "10.43.120.56" ||
-    host === "localhost" ||
-    host === "127.0.0.1" ||
-    host === "www.ajv.edu" ||
-    clientIp === "10.43.120.56" ||
-    clientIp.startsWith("10.43.120.") ||
-    clientIp === "127.0.0.1" ||
-    clientIp === "::1" ||
-    clientIp === "localhost"
-  );
+  // 2. Direct network IP match for 10.43.120.56
+  if (clientIp === "10.43.120.56" || clientIp.startsWith("10.43.120.") || host === "10.43.120.56") {
+    return true;
+  }
+
+  // 3. Localhost ONLY if running strictly in offline local development (NEVER on Render or cloud)
+  const isCloudOrRender = Boolean(process.env.RENDER || host.includes("onrender.com"));
+  if (!isCloudOrRender) {
+    if (host === "localhost" || host === "127.0.0.1" || clientIp === "127.0.0.1" || clientIp === "::1" || clientIp === "localhost") {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function publicUser(u) {

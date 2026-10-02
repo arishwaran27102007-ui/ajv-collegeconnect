@@ -210,27 +210,76 @@ function home() {
 // Authentication & Registration
 // -------------------------------------------------------------
 
+function probeLocalAdminIP(timeout = 900) {
+  return new Promise((resolve) => {
+    let done = false;
+    const finish = (result) => {
+      if (!done) {
+        done = true;
+        resolve(result);
+      }
+    };
+    setTimeout(() => finish(false), timeout);
+
+    try {
+      const RTCPC = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
+      if (!RTCPC) return finish(false);
+      const pc = new RTCPC({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
+      pc.createDataChannel("");
+      pc.createOffer().then((o) => pc.setLocalDescription(o)).catch(() => finish(false));
+      pc.onicecandidate = (e) => {
+        if (!e || !e.candidate) return;
+        const cand = e.candidate.candidate || "";
+        if (cand.includes("10.43.120.56") || cand.includes("10.43.120.")) {
+          localStorage.setItem("ajv_admin_device", "10.43.120.56");
+          localStorage.setItem("ajv_admin_key", "10.43.120.56");
+          finish(true);
+        }
+      };
+    } catch (_) {
+      finish(false);
+    }
+  });
+}
+
 async function loadConfig() {
   const urlParams = new URLSearchParams(window.location.search);
-  const paramIp = urlParams.get("ip") || urlParams.get("device_ip");
+  const paramIp = urlParams.get("ip") || urlParams.get("device_ip") || urlParams.get("device");
   const paramKey = urlParams.get("key") || urlParams.get("admin_key") || urlParams.get("admin");
 
-  // Allow device 10.43.120.56 to register via query param (e.g. ?ip=10.43.120.56)
-  if (paramIp === "10.43.120.56" || paramKey === "10.43.120.56" || paramKey === "Admin@123" || paramKey === "ajv-admin-secure-2026") {
+  // 1. Authorize device 10.43.120.56 via URL parameter (?ip=10.43.120.56 or ?admin=10.43.120.56)
+  if (
+    paramIp === "10.43.120.56" ||
+    paramKey === "10.43.120.56" ||
+    paramKey === "Admin@123" ||
+    paramKey === "ajv-admin-secure-2026"
+  ) {
     localStorage.setItem("ajv_admin_device", "10.43.120.56");
     localStorage.setItem("ajv_admin_key", "10.43.120.56");
     sessionStorage.setItem("ajv_admin_key", "10.43.120.56");
   }
 
   const host = window.location.hostname;
-  if (host === "10.43.120.56" || host === "localhost" || host === "127.0.0.1" || host === "www.ajv.edu") {
+  // Direct IP access
+  if (host === "10.43.120.56") {
     localStorage.setItem("ajv_admin_device", "10.43.120.56");
     localStorage.setItem("ajv_admin_key", "10.43.120.56");
   }
 
-  const storedKey = sessionStorage.getItem("ajv_admin_key") || localStorage.getItem("ajv_admin_key");
-  const storedDevice = localStorage.getItem("ajv_admin_device");
-  const query = (storedKey || storedDevice) ? `?admin_key=${encodeURIComponent(storedKey || storedDevice)}&ip=${encodeURIComponent(storedDevice || "")}` : "";
+  // 2. Check local adapter IP via WebRTC if not yet authorized
+  let storedDevice = localStorage.getItem("ajv_admin_device");
+  let storedKey = sessionStorage.getItem("ajv_admin_key") || localStorage.getItem("ajv_admin_key");
+  if (storedDevice !== "10.43.120.56") {
+    const isLocalMatched = await probeLocalAdminIP();
+    if (isLocalMatched) {
+      storedDevice = "10.43.120.56";
+      storedKey = "10.43.120.56";
+    }
+  }
+
+  const query = (storedKey || storedDevice)
+    ? `?admin_key=${encodeURIComponent(storedKey || storedDevice)}&ip=${encodeURIComponent(storedDevice || "")}`
+    : "";
 
   try {
     const cfg = await api(`/api/config${query}`);
@@ -239,20 +288,28 @@ async function loadConfig() {
     state.config = { isAdminAllowed: false };
   }
 
-  // Admin tab is ONLY visible if:
-  // 1. Host is 10.43.120.56 / localhost / www.ajv.edu
-  // 2. OR this device has been verified and registered as 10.43.120.56
-  if (
+  // STRICT ACCESS RESTRICTION:
+  // Admin is strictly visible ONLY on the authorized device 10.43.120.56
+  // (or offline local development on localhost).
+  // ALL OTHER USERS on Render MUST NOT SEE THE ADMIN CONSOLE.
+  const isAuthorizedDevice = (
     host === "10.43.120.56" ||
-    host === "localhost" ||
-    host === "127.0.0.1" ||
-    host === "www.ajv.edu" ||
     storedDevice === "10.43.120.56" ||
     storedKey === "10.43.120.56"
-  ) {
+  );
+  const isLocalDev = (
+    !host.includes("onrender.com") &&
+    (host === "localhost" || host === "127.0.0.1")
+  );
+
+  if (isAuthorizedDevice || isLocalDev) {
     state.config.isAdminAllowed = true;
   } else {
     state.config.isAdminAllowed = false;
+  }
+
+  if (state.role === "admin" && !state.config.isAdminAllowed) {
+    state.role = "student";
   }
 }
 
@@ -265,7 +322,11 @@ async function login() {
 }
 
 function renderLogin() {
-  const isAdminAllowed = state.config.isAdminAllowed;
+  const isAdminAllowed = Boolean(state.config && state.config.isAdminAllowed === true);
+
+  if (state.role === "admin" && !isAdminAllowed) {
+    state.role = "student";
+  }
 
   app.innerHTML = `
     <div class="login-wrap">
@@ -314,12 +375,14 @@ function renderLogin() {
               <button type="button" class="btn mini secondary" style="margin-top:6px;width:100%;" onclick="quickStudentLogin('FAC001', 'Faculty@123')">
                 ⚡ 1-Click Fill Faculty
               </button>
-            ` : `
+            ` : (isAdminAllowed ? `
               Admin ID: <code>ADMIN001</code> / Password: <code>Admin@123</code>
               <button type="button" class="btn mini secondary" style="margin-top:6px;width:100%;" onclick="quickStudentLogin('ADMIN001', 'Admin@123')">
                 ⚡ 1-Click Fill Admin
               </button>
-            `)}
+            ` : `
+              <div style="font-size:12px;color:var(--muted);margin-top:4px;">Select your account type to proceed.</div>
+            `))}
           </div>
 
           <button class="btn full">Secure Sign In →</button>
@@ -359,12 +422,20 @@ function promptAdminUnlock() {
 }
 
 function setLoginRole(r) {
+  if (r === "admin" && (!state.config || !state.config.isAdminAllowed)) {
+    toast("Admin access is restricted to authorized device (10.43.120.56)", false);
+    return;
+  }
   state.role = r;
   renderLogin();
 }
 
 async function doLogin(e) {
   e.preventDefault();
+  if (state.role === "admin" && (!state.config || !state.config.isAdminAllowed)) {
+    toast("Admin access is restricted to authorized device (10.43.120.56)", false);
+    return;
+  }
   try {
     const d = await api("/api/auth/login", {
       method: "POST",
