@@ -721,11 +721,12 @@ async function isSemesterPublished(semester) {
   return pub ? Boolean(pub.isPublished) : false;
 }
 
-async function setSemesterPublishStatus(semester, isPublished, publishedBy = "AJV Controller of Examinations") {
+async function setSemesterPublishStatus(semester, isPublished, publishedBy = "AJV Controller of Examinations", sessionName = null) {
   const s = String(semester);
   const numS = Number(semester);
   const pubAt = isPublished ? new Date().toISOString() : null;
   const pubBy = isPublished ? publishedBy : null;
+  const session = sessionName || "April / May 2026 End Semester Examinations";
 
   if (dbMode === "postgres") {
     await pool.query(`
@@ -734,17 +735,136 @@ async function setSemesterPublishStatus(semester, isPublished, publishedBy = "AJ
       ON CONFLICT (semester) DO UPDATE
       SET is_published = $2, published_at = $3, published_by = $4
     `, [numS, isPublished, pubAt, pubBy]);
-    return { semester: numS, isPublished: Boolean(isPublished), publishedAt: pubAt, publishedBy: pubBy };
+    return { semester: numS, isPublished: Boolean(isPublished), publishedAt: pubAt, publishedBy: pubBy, sessionName: session };
   }
 
   if (!jsonDb.resultsPublication) jsonDb.resultsPublication = {};
   jsonDb.resultsPublication[s] = {
     isPublished: Boolean(isPublished),
     publishedAt: pubAt,
-    publishedBy: pubBy
+    publishedBy: pubBy,
+    sessionName: session
   };
   saveJsonDb();
-  return { semester: numS, isPublished: Boolean(isPublished), publishedAt: pubAt, publishedBy: pubBy };
+  return { semester: numS, isPublished: Boolean(isPublished), publishedAt: pubAt, publishedBy: pubBy, sessionName: session };
+}
+
+async function getAllSemestersAnalytics() {
+  const published = await getPublishedSemesters();
+  const students = (await listStudents()).filter(s => s.status === "active");
+  const yearMap = { 1: "I Year", 2: "I Year", 3: "II Year", 4: "II Year", 5: "III Year", 6: "III Year", 7: "IV Year", 8: "IV Year" };
+
+  const analytics = {};
+
+  for (let sem = 1; sem <= 8; sem++) {
+    const sStr = String(sem);
+    const pub = published[sStr] || { isPublished: false };
+    const targetYear = yearMap[sem];
+    const semStudents = students.filter(s => s.year === targetYear || !s.year);
+    const evalList = [];
+
+    for (const student of students) {
+      const records = await getCourseRecords(student.id, sem);
+      if (records.length > 0) {
+        const valid = records.filter(r => r.grade && r.grade !== "—");
+        if (valid.length > 0) {
+          const totalCredits = valid.reduce((acc, r) => acc + Number(r.course?.credits || 0), 0);
+          const weightedSum = valid.reduce((acc, r) => acc + (Number(r.gradePoint || 0) * Number(r.course?.credits || 0)), 0);
+          const sgpa = totalCredits ? Number((weightedSum / totalCredits).toFixed(2)) : 0;
+          const hasRA = records.some(r => r.grade === "RA");
+          const isComplete = records.every(r => r.grade && r.grade !== "—");
+          evalList.push({
+            studentId: student.id,
+            fullName: student.fullName,
+            loginId: student.loginId,
+            sgpa,
+            hasRA,
+            isComplete
+          });
+        }
+      }
+    }
+
+    const totalEvaluated = evalList.length;
+    const passedCount = evalList.filter(e => !e.hasRA && e.isComplete).length;
+    const raCount = evalList.filter(e => e.hasRA).length;
+    const pendingCount = evalList.filter(e => !e.isComplete && !e.hasRA).length;
+    const passPercentage = totalEvaluated > 0 ? Number(((passedCount / totalEvaluated) * 100).toFixed(1)) : 0;
+    const avgSgpa = totalEvaluated > 0 ? Number((evalList.reduce((acc, e) => acc + e.sgpa, 0) / totalEvaluated).toFixed(2)) : 0;
+    const maxSgpa = totalEvaluated > 0 ? Math.max(...evalList.map(e => e.sgpa)) : 0;
+
+    analytics[sStr] = {
+      semester: sem,
+      year: targetYear,
+      isPublished: Boolean(pub.isPublished),
+      publishedAt: pub.publishedAt,
+      publishedBy: pub.publishedBy,
+      sessionName: pub.sessionName || "Regular End Semester Examinations",
+      totalEligible: semStudents.length,
+      totalEvaluated,
+      passedCount,
+      raCount,
+      pendingCount,
+      passPercentage,
+      avgSgpa,
+      maxSgpa,
+      valuationStatus: totalEvaluated === 0 ? "NOT_STARTED" : (pendingCount > 0 ? "IN_PROGRESS" : "READY_TO_PUBLISH")
+    };
+  }
+
+  return analytics;
+}
+
+async function getSemesterBroadsheet(semester) {
+  const sem = Number(semester);
+  const courses = await getCourses(sem);
+  const students = (await listStudents()).filter(s => s.status === "active");
+  const published = await isSemesterPublished(sem);
+  const pubStatus = (await getPublishedSemesters())[String(sem)] || {};
+
+  const rows = [];
+  for (const student of students) {
+    const records = await getCourseRecords(student.id, sem);
+    if (records.length > 0) {
+      const semResult = await getSemesterResult(student.id, sem);
+      rows.push({
+        student: {
+          id: student.id,
+          fullName: student.fullName,
+          loginId: student.loginId,
+          department: student.department,
+          year: student.year,
+          section: student.section || "A"
+        },
+        records: records.map(r => ({
+          courseId: r.course?.id,
+          code: r.course?.code,
+          name: r.course?.name,
+          credits: r.course?.credits,
+          internalMark: r.internalMark,
+          externalMark: r.externalMark,
+          totalMark: r.totalMark,
+          grade: r.grade,
+          gradePoint: r.gradePoint
+        })),
+        sgpa: semResult ? semResult.sgpa : 0,
+        cgpa: semResult ? semResult.cgpa : 0,
+        resultStatus: semResult ? semResult.resultStatus : "INCOMPLETE",
+        earnedCredits: semResult ? semResult.earnedCredits : 0,
+        totalCredits: semResult ? semResult.totalCredits : 0
+      });
+    }
+  }
+
+  return {
+    semester: sem,
+    isPublished: published,
+    publishedAt: pubStatus.publishedAt,
+    publishedBy: pubStatus.publishedBy,
+    sessionName: pubStatus.sessionName || "Regular End Semester Examinations",
+    courses,
+    rows
+  };
 }
 
 async function getSemesterResult(studentId, semester) {
@@ -969,5 +1089,7 @@ module.exports = {
   isSemesterPublished,
   setSemesterPublishStatus,
   getSemesterResult,
+  getAllSemestersAnalytics,
+  getSemesterBroadsheet,
   getDbMode: () => dbMode
 };

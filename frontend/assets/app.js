@@ -1369,10 +1369,16 @@ async function openPublishResultsCenter() {
   }
 
   try {
-    const statusData = await api("/api/results/status");
+    const [statusData, analyticsData, students] = await Promise.all([
+      api("/api/results/status"),
+      api("/api/admin/results/analytics").catch(() => ({ analytics: {} })),
+      api("/api/staff/students")
+    ]);
+
     const pubMap = statusData.publishedSemesters || {};
-    const students = await api("/api/staff/students");
+    const analytics = analyticsData.analytics || {};
     state.staffStudents = students;
+    state.adminResultsAnalytics = analytics;
 
     const years = [
       { year: "I Year", sems: [1, 2], desc: "Foundation & Applied Science Core" },
@@ -1385,21 +1391,35 @@ async function openPublishResultsCenter() {
       <div class="dashboard">
         <div class="dash-head">
           <div>
-            <div class="eyebrow" style="color:var(--red);">🛡️ STRICTLY ADMIN CONTROLLED</div>
-            <h1>Official Results Publication Center</h1>
-            <p class="muted">Manage official result release across all 4 Academic Years and 8 Semesters. Only published semesters are viewable and downloadable as sealed marksheets by students.</p>
+            <div class="eyebrow" style="color:var(--red);">🛡️ CONTROLLER OF EXAMINATIONS • EXECUTIVE CONSOLE</div>
+            <h1>Academic Results Publication &amp; Governance Center</h1>
+            <p class="muted">Authorize, audit, and broadcast semester examination results across all 4 Academic Years &amp; 8 Semesters. Inspect batch pass percentages, valuation readiness, and official sealed marksheets.</p>
           </div>
           <div style="display:flex;gap:10px;">
             <button class="btn secondary" onclick="showPage('dashboard')">← Admin Dashboard</button>
           </div>
         </div>
 
-        <!-- Executive Quick Preview Toolbar -->
+        <!-- Bulk Academic Year Release Strip -->
+        <div class="bulk-year-strip">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <b style="font-size:13px;color:var(--navy);">⚡ Quick Batch Operations:</b>
+            <span class="muted" style="font-size:12px;">Publish or withhold entire academic years in one click:</span>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn mini secondary" onclick="adminBulkPublishYear('I Year', true)">Publish I Year (Sem 1 &amp; 2)</button>
+            <button class="btn mini secondary" onclick="adminBulkPublishYear('II Year', true)">Publish II Year (Sem 3 &amp; 4)</button>
+            <button class="btn mini secondary" onclick="adminBulkPublishYear('III Year', true)">Publish III Year (Sem 5 &amp; 6)</button>
+            <button class="btn mini secondary" onclick="adminBulkPublishYear('IV Year', true)">Publish IV Year (Sem 7 &amp; 8)</button>
+          </div>
+        </div>
+
+        <!-- Executive Instant Marksheet & Broadsheet Inspection Toolbar -->
         <div class="card" style="background:#f8fafc;border:1px solid #cbd5e1;margin-bottom:24px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;">
             <div>
-              <b style="color:var(--navy);font-size:15px;">🎓 Instant Marksheet Inspection (Admin Preview With Official Seal)</b>
-              <p class="muted" style="margin:2px 0 0;font-size:12px;">Inspect or print any student's marksheet with the institutional seal at any time, even before public release.</p>
+              <b style="color:var(--navy);font-size:15px;">🎓 Instant Candidate Marksheet &amp; Batch Audit Tool</b>
+              <p class="muted" style="margin:2px 0 0;font-size:12px;">Inspect any student's marksheet with the institutional seal or open the Tabulated Mark Register (TMR) Broadsheet for any semester.</p>
             </div>
             <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
               <select id="adminPreviewStudent" style="padding:8px 12px;border:1px solid var(--line);border-radius:6px;min-width:220px;font-size:13px;background:#fff;">
@@ -1416,14 +1436,17 @@ async function openPublishResultsCenter() {
                 <option value="8">Semester 8 (IV Year)</option>
               </select>
               <button class="btn gold" onclick="openOfficialMarksheet(document.getElementById('adminPreviewSemSelect').value, document.getElementById('adminPreviewStudent').value)">
-                View Marksheet (With Seal) →
+                🎓 View Sealed Marksheet
+              </button>
+              <button class="btn secondary" onclick="openSemesterBroadsheet(document.getElementById('adminPreviewSemSelect').value)">
+                📑 Broadsheet (TMR)
               </button>
             </div>
           </div>
         </div>
 
-        <!-- 4 Years & 8 Semesters Publishing Grid -->
-        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(310px, 1fr));gap:20px;">
+        <!-- 4 Years & 8 Semesters Executive Publishing & Analytics Grid -->
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(320px, 1fr));gap:20px;">
           ${years.map(y => `
             <div class="card" style="border-top:4px solid var(--navy);display:flex;flex-direction:column;justify-content:space-between;">
               <div>
@@ -1434,36 +1457,79 @@ async function openPublishResultsCenter() {
                 <h3 style="margin:6px 0 2px;">${y.year} Academic Assessment</h3>
                 <p class="muted" style="font-size:12px;margin:0 0 16px;">${y.desc}</p>
                 
-                <div style="display:flex;flex-direction:column;gap:12px;">
+                <div style="display:flex;flex-direction:column;gap:14px;">
                   ${y.sems.map(sem => {
                     const pub = pubMap[String(sem)] || { isPublished: false };
+                    const semAnalytics = analytics[String(sem)] || {
+                      totalEvaluated: 0,
+                      passedCount: 0,
+                      raCount: 0,
+                      pendingCount: 0,
+                      passPercentage: 0,
+                      avgSgpa: 0,
+                      valuationStatus: 'NOT_STARTED'
+                    };
                     const isPub = !!pub.isPublished;
+                    const passPct = Number(semAnalytics.passPercentage || 0);
+                    const barClass = passPct >= 85 ? '' : (passPct >= 65 ? 'warning' : 'danger');
+
+                    let readinessHtml = '';
+                    if (semAnalytics.valuationStatus === 'READY_TO_PUBLISH') {
+                      readinessHtml = `<span class="readiness-badge readiness-ready">✓ 100% Valuated</span>`;
+                    } else if (semAnalytics.valuationStatus === 'IN_PROGRESS') {
+                      readinessHtml = `<span class="readiness-badge readiness-progress">⏳ Valuation In Progress</span>`;
+                    } else {
+                      readinessHtml = `<span class="readiness-badge readiness-notstarted">Awaiting Mark Entry</span>`;
+                    }
+
                     return `
-                      <div style="background:${isPub ? '#f0fdf4' : '#f8fafc'};border:1px solid ${isPub ? '#86efac' : '#e2e8f0'};border-radius:8px;padding:12px 14px;">
-                        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+                      <div class="admin-pub-card ${isPub ? 'is-published' : 'is-unpublished'}">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
                           <div>
-                            <b style="font-size:14px;color:var(--navy);">Semester ${sem}</b>
-                            <div style="font-size:11px;color:${isPub ? '#15803d' : '#64748b'};">
-                              ${isPub ? `✓ Published by ${esc(pub.publishedBy || 'Admin')} on ${pub.publishedAt ? new Date(pub.publishedAt).toLocaleDateString() : 'Active'}` : '🔒 Unpublished (Valuation in progress)'}
+                            <b style="font-size:15px;color:var(--navy);">Semester ${sem}</b>
+                            <div style="font-size:11px;color:${isPub ? '#15803d' : '#64748b'};margin-top:1px;">
+                              ${isPub ? `✓ Released by ${esc(pub.publishedBy || 'COE')}` : '🔒 Withheld / Unpublished'}
                             </div>
                           </div>
-                          <span class="pill ${isPub ? 'grade-Ap' : 'grade-B'}" style="font-size:11px;padding:3px 8px;">
-                            ${isPub ? 'PUBLISHED' : 'DRAFT'}
-                          </span>
+                          <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+                            <span class="pill ${isPub ? 'grade-Ap' : 'grade-B'}" style="font-size:10px;padding:2px 8px;">
+                              ${isPub ? 'PUBLISHED' : 'DRAFT'}
+                            </span>
+                            ${readinessHtml}
+                          </div>
                         </div>
 
-                        <div style="display:flex;gap:8px;align-items:center;margin-top:10px;">
+                        <!-- Real-Time Examination Analytics & Pass Metrics -->
+                        <div class="sem-analytics-bar">
+                          <div class="sem-metrics-strip">
+                            <span>Evaluated: <b>${semAnalytics.totalEvaluated}</b> students</span>
+                            <span>Pass Rate: <b>${passPct}%</b></span>
+                          </div>
+                          <div class="pass-bar-track">
+                            <div class="pass-bar-fill ${barClass}" style="width: ${passPct}%;"></div>
+                          </div>
+                          <div style="display:flex;justify-content:space-between;font-size:10px;color:#64748b;margin-top:5px;">
+                            <span>${semAnalytics.passedCount} PASS • ${semAnalytics.raCount} RA</span>
+                            <span>Batch Avg: <b>${semAnalytics.avgSgpa} SGPA</b></span>
+                          </div>
+                        </div>
+
+                        <!-- Action Toolbar -->
+                        <div style="display:flex;gap:6px;align-items:center;margin-top:12px;">
                           ${isPub ? `
-                            <button class="btn secondary mini" style="flex:1;" onclick="adminTogglePublish(${sem}, false)">
-                              🔒 Unpublish Result
+                            <button class="btn secondary mini" style="flex:1;" onclick="openPublishModal(${sem}, false)">
+                              🔒 Unpublish
                             </button>
                           ` : `
-                            <button class="btn gold mini" style="flex:1;" onclick="adminTogglePublish(${sem}, true)">
-                              🚀 Publish Result to Students
+                            <button class="btn gold mini" style="flex:1;" onclick="openPublishModal(${sem}, true)">
+                              🚀 Publish Results
                             </button>
                           `}
-                          <button class="btn secondary mini" title="Preview marksheet of first student for Sem ${sem}" onclick="previewSemFirstStudent(${sem})">
-                            📄 Inspect
+                          <button class="btn secondary mini" title="Tabulated Mark Register (TMR) Broadsheet" onclick="openSemesterBroadsheet(${sem})">
+                            📑 TMR
+                          </button>
+                          <button class="btn secondary mini" title="Inspect marksheet with institutional seal" onclick="previewSemFirstStudent(${sem})">
+                            🎓 Preview
                           </button>
                         </div>
                       </div>
@@ -1472,8 +1538,9 @@ async function openPublishResultsCenter() {
                 </div>
               </div>
 
-              <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);">
-                Autonomous Curriculum Regulations 2021
+              <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);display:flex;justify-content:space-between;">
+                <span>Regulations 2021 (Autonomous)</span>
+                <span>Choice Based Credit System</span>
               </div>
             </div>
           `).join("")}
@@ -1485,25 +1552,261 @@ async function openPublishResultsCenter() {
   }
 }
 
-async function adminTogglePublish(semester, willPublish) {
-  const sem = Number(semester);
-  const actionText = willPublish ? "PUBLISH" : "UNPUBLISH";
-  const confirmMsg = willPublish
-    ? `Are you sure you want to officially PUBLISH Semester ${sem} results?\n\nStudents will immediately be able to view their SGPA, grades, and download the official marksheet with the Institution Seal.`
-    : `Are you sure you want to UNPUBLISH Semester ${sem} results?\n\nStudents will see an 'Under Valuation' notice and will not be able to access the official marksheet until re-published.`;
+// -------------------------------------------------------------
+// Executive Publishing Dialog with Session & Auto-Broadcast
+// -------------------------------------------------------------
 
-  if (!confirm(confirmMsg)) return;
+function openPublishModal(sem, willPublish) {
+  const analytics = (state.adminResultsAnalytics && state.adminResultsAnalytics[String(sem)]) || {};
+  const currentSession = analytics.sessionName || "April / May 2026 End Semester Examinations";
+  const passRate = analytics.passPercentage || 0;
+  const evalCount = analytics.totalEvaluated || 0;
+
+  modalDialog.innerHTML = `
+    <div class="modal-header">
+      <div>
+        <h2 style="margin:0;">${willPublish ? '🚀 Official Semester Results Publication' : '🔒 Withhold / Unpublish Results'}</h2>
+        <small class="muted">Semester ${sem} Assessment Governance</small>
+      </div>
+      <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
+    </div>
+    <form onsubmit="executePublish(event, ${sem}, ${willPublish})">
+      <div class="modal-body">
+        ${willPublish ? `
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;margin-bottom:14px;">
+            <b style="color:#15803d;font-size:14px;">Pre-Publication Valuation Audit Summary:</b>
+            <div style="display:flex;gap:16px;margin-top:6px;font-size:12px;color:#166534;">
+              <span>Total Evaluated: <b>${evalCount} Candidates</b></span>
+              <span>Pass Rate: <b>${passRate}%</b></span>
+              <span>Batch Average SGPA: <b>${analytics.avgSgpa || '—'}</b></span>
+            </div>
+          </div>
+
+          <label>Examination Session Title *</label>
+          <input id="pubSessionName" value="${esc(currentSession)}" placeholder="e.g. April / May 2026 End Semester Autonomous Examinations" required>
+
+          <label style="margin-top:12px;">Authorized Official Designation</label>
+          <input id="pubDesignation" value="AJV Controller of Examinations" placeholder="Signatory Designation" required>
+
+          <label class="show-pass-label" style="margin-top:14px;">
+            <input id="pubBroadcastCheck" type="checkbox" checked onchange="document.getElementById('noticeWrap').style.display = this.checked ? 'block' : 'none'">
+            <span><b>Broadcast official announcement to campus portal bulletin</b></span>
+          </label>
+
+          <div id="noticeWrap" style="margin-top:10px;">
+            <label>Official Notification Circular Text</label>
+            <textarea id="pubNoticeText" rows="3">The Controller of Examinations has officially released the Semester ${sem} examination results. Students and faculty can now view semester statements of grades and download verified marksheets with the official institutional seal.</textarea>
+          </div>
+        ` : `
+          <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:14px;margin-bottom:14px;color:#991b1b;">
+            <b>⚠️ Confirmation Required: Withhold Semester ${sem} Results</b>
+            <p style="margin:6px 0 0;font-size:13px;line-height:1.5;">
+              Unpublishing Semester ${sem} will immediately lock student access to statements of grades and marksheet downloads. 
+              Students will see an official "Under Valuation" notice until the administration re-releases the results.
+            </p>
+          </div>
+        `}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn secondary" onclick="modalDialog.close()">Cancel</button>
+        <button type="submit" class="btn ${willPublish ? 'gold' : 'danger'}">
+          ${willPublish ? '🚀 Confirm Official Publication →' : '🔒 Withhold Results Now'}
+        </button>
+      </div>
+    </form>
+  `;
+
+  modalDialog.showModal();
+}
+
+async function executePublish(e, sem, willPublish) {
+  e.preventDefault();
+  const sessionName = document.getElementById("pubSessionName") ? document.getElementById("pubSessionName").value : null;
+  const publishedBy = document.getElementById("pubDesignation") ? document.getElementById("pubDesignation").value : null;
+  const broadcastAnnouncement = document.getElementById("pubBroadcastCheck") ? document.getElementById("pubBroadcastCheck").checked : false;
+  const customNotice = document.getElementById("pubNoticeText") ? document.getElementById("pubNoticeText").value : null;
 
   try {
     const res = await api("/api/admin/results/publish", {
       method: "POST",
-      body: { semester: sem, isPublished: willPublish }
+      body: {
+        semester: sem,
+        isPublished: willPublish,
+        sessionName,
+        publishedBy,
+        broadcastAnnouncement,
+        customNotice
+      }
     });
+
+    modalDialog.close();
     toast(res.message || `Semester ${sem} results ${willPublish ? 'published' : 'unpublished'} successfully!`, true);
     openPublishResultsCenter();
   } catch (err) {
     toast(err.message, false);
   }
+}
+
+// -------------------------------------------------------------
+// Bulk Publish by Academic Year
+// -------------------------------------------------------------
+
+async function adminBulkPublishYear(year, willPublish) {
+  const confirmMsg = `Are you sure you want to ${willPublish ? 'PUBLISH' : 'UNPUBLISH'} all semester examination results for ${year}?\n\nThis will apply to both semesters of ${year} and generate official campus bulletins.`;
+  if (!confirm(confirmMsg)) return;
+
+  try {
+    const res = await api("/api/admin/results/publish-year", {
+      method: "POST",
+      body: { year, isPublished: willPublish }
+    });
+    toast(res.message, true);
+    openPublishResultsCenter();
+  } catch (err) {
+    toast(err.message, false);
+  }
+}
+
+// -------------------------------------------------------------
+// Tabulated Mark Register (TMR) / Broadsheet Viewer
+// -------------------------------------------------------------
+
+async function openSemesterBroadsheet(sem) {
+  try {
+    const data = await api(`/api/admin/results/broadsheet/${sem}`);
+    const courses = data.courses || [];
+    const rows = data.rows || [];
+    state.activeBroadsheetData = data;
+
+    const totalStudents = rows.length;
+    const passedStudents = rows.filter(r => r.resultStatus === "PASS").length;
+    const passPercentage = totalStudents > 0 ? ((passedStudents / totalStudents) * 100).toFixed(1) : 0;
+    const avgSgpa = totalStudents > 0 ? (rows.reduce((s, r) => s + Number(r.sgpa || 0), 0) / totalStudents).toFixed(2) : 0;
+
+    modalDialog.innerHTML = `
+      <div class="modal-header">
+        <div>
+          <h2 style="margin:0;">Tabulated Mark Register (TMR) — Semester ${sem}</h2>
+          <small class="muted">AJV College of Engineering • Office of the Controller of Examinations • ${esc(data.sessionName)}</small>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn mini gold" onclick="window.print()">🖨️ Print Broadsheet</button>
+          <button class="btn mini secondary" onclick="exportBroadsheetCsv(${sem})">📥 Export CSV</button>
+          <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
+        </div>
+      </div>
+      <div class="modal-body" style="padding:16px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;background:#f8fafc;border:1px solid #cbd5e1;padding:10px 14px;border-radius:8px;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <b>Session:</b> ${esc(data.sessionName)} • <b>Status:</b> ${data.isPublished ? '<span style="color:#059669;font-weight:700;">● Officially Published</span>' : '<span style="color:#d97706;font-weight:700;">🔒 Withheld / Valuation Draft</span>'}
+          </div>
+          <div style="display:flex;gap:16px;font-size:12px;">
+            <span>Candidates: <b>${totalStudents}</b></span>
+            <span>Passed: <b style="color:#059669;">${passedStudents}</b></span>
+            <span>Pass Rate: <b style="color:var(--navy);">${passPercentage}%</b></span>
+            <span>Batch SGPA: <b>${avgSgpa} / 10.0</b></span>
+          </div>
+        </div>
+
+        <div class="broadsheet-table-wrap">
+          <table class="broadsheet-table">
+            <thead>
+              <tr>
+                <th style="width:35px;text-align:center;">#</th>
+                <th>Register No</th>
+                <th>Candidate Name</th>
+                <th>Dept &amp; Sec</th>
+                ${courses.map(c => `
+                  <th style="text-align:center;" title="${esc(c.name)} (${c.credits} Credits)">
+                    ${esc(c.code)}<br>
+                    <small style="opacity:0.8;font-weight:normal;">${c.credits}C</small>
+                  </th>
+                `).join("")}
+                <th style="text-align:center;">SGPA</th>
+                <th style="text-align:center;">CGPA</th>
+                <th style="text-align:center;">Result</th>
+                <th style="text-align:center;">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rows.length ? rows.map((r, i) => `
+                <tr>
+                  <td style="text-align:center;">${i + 1}</td>
+                  <td><b>${esc(r.student.loginId)}</b></td>
+                  <td>${esc(r.student.fullName)}</td>
+                  <td>${esc(r.student.department)} (${esc(r.student.section)})</td>
+                  ${courses.map(c => {
+                    const rec = r.records.find(rc => rc.courseId === c.id || rc.code === c.code);
+                    if (!rec || !rec.grade || rec.grade === "—") return `<td style="text-align:center;color:#94a3b8;">—</td>`;
+                    return `
+                      <td style="text-align:center;">
+                        <b>${rec.totalMark}</b><br>
+                        <span class="pill ${gradeClass(rec.grade)}" style="font-size:9px;padding:1px 4px;">${esc(rec.grade)}</span>
+                      </td>
+                    `;
+                  }).join("")}
+                  <td style="text-align:center;font-weight:700;color:var(--blue);">${r.sgpa}</td>
+                  <td style="text-align:center;font-weight:700;color:var(--gold);">${r.cgpa}</td>
+                  <td style="text-align:center;">
+                    <span class="pill ${r.resultStatus === 'PASS' ? 'grade-Ap' : 'grade-RA'}">${esc(r.resultStatus)}</span>
+                  </td>
+                  <td style="text-align:center;">
+                    <button class="btn mini secondary" onclick="openOfficialMarksheet(${sem}, ${r.student.id})">🎓 Marksheet</button>
+                  </td>
+                </tr>
+              `).join("") : `<tr><td colspan="${courses.length + 8}" style="text-align:center;padding:24px;color:var(--muted);">No candidates recorded for Semester ${sem} yet.</td></tr>`}
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn secondary" onclick="modalDialog.close()">Close Broadsheet</button>
+        <button class="btn gold" onclick="window.print()">🖨️ Print Tabulated Mark Register</button>
+      </div>
+    `;
+
+    modalDialog.showModal();
+  } catch (err) {
+    toast(err.message, false);
+  }
+}
+
+function exportBroadsheetCsv(sem) {
+  const data = state.activeBroadsheetData;
+  if (!data || !data.rows || !data.rows.length) return toast("No broadsheet data to export", false);
+
+  const courses = data.courses || [];
+  const headers = ["Register No", "Candidate Name", "Department", "Section", ...courses.map(c => `${c.code}_Total`), ...courses.map(c => `${c.code}_Grade`), "SGPA", "CGPA", "Result"];
+  const csvRows = data.rows.map(r => {
+    const marksCols = courses.map(c => {
+      const rec = r.records.find(rc => rc.courseId === c.id || rc.code === c.code);
+      return rec ? rec.totalMark : "";
+    });
+    const gradeCols = courses.map(c => {
+      const rec = r.records.find(rc => rc.courseId === c.id || rc.code === c.code);
+      return rec ? rec.grade : "";
+    });
+    return [
+      `"${r.student.loginId}"`,
+      `"${r.student.fullName}"`,
+      `"${r.student.department}"`,
+      `"${r.student.section}"`,
+      ...marksCols,
+      ...gradeCols,
+      r.sgpa,
+      r.cgpa,
+      `"${r.resultStatus}"`
+    ];
+  });
+
+  const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...csvRows.map(e => e.join(","))].join("\n");
+  const link = document.createElement("a");
+  link.setAttribute("href", encodeURI(csvContent));
+  link.setAttribute("download", `AJV_COE_TMR_Broadsheet_Sem${sem}_${new Date().toISOString().split('T')[0]}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  toast("Tabulated Mark Register (TMR) exported to CSV");
 }
 
 function previewSemFirstStudent(sem) {

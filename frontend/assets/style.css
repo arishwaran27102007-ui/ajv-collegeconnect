@@ -534,7 +534,7 @@ dialog::backdrop {
   color: #cbd5e1;
 }
 
-/* Admin Results Publication Executive Grid */
+/* Admin Results Publication Executive Grid & Enhancements */
 .admin-pub-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -558,6 +558,114 @@ dialog::backdrop {
 }
 .admin-pub-card.is-unpublished {
   border-left: 4px solid #cbd5e1;
+}
+
+/* Examination Analytics & Pass Metrics */
+.sem-analytics-bar {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px dashed #e2e8f0;
+}
+.sem-metrics-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  margin-bottom: 4px;
+  color: #475569;
+}
+.sem-metrics-strip b {
+  color: var(--navy);
+}
+.pass-bar-track {
+  width: 100%;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.pass-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #10b981, #059669);
+  transition: width 0.4s ease;
+}
+.pass-bar-fill.warning {
+  background: linear-gradient(90deg, #f59e0b, #d97706);
+}
+.pass-bar-fill.danger {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+}
+
+.readiness-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+.readiness-ready {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+.readiness-progress {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+.readiness-notstarted {
+  background: #f1f5f9;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+}
+
+/* Bulk Year Operation Strip */
+.bulk-year-strip {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Broadsheet Tabulated Mark Register (TMR) */
+.broadsheet-table-wrap {
+  max-height: 520px;
+  overflow: auto;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+}
+.broadsheet-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+.broadsheet-table th {
+  background: var(--navy);
+  color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 8px 10px;
+  white-space: nowrap;
+}
+.broadsheet-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid #e2e8f0;
+  border-right: 1px solid #f1f5f9;
+}
+.broadsheet-table tr:hover td {
+  background: #f8fafc;
 }
 
 /* Print Media Query */

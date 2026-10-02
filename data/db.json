@@ -52,9 +52,9 @@
       "year": "I Year",
       "section": "A",
       "address": "Coimbatore, Tamil Nadu",
-      "cgpa": 9.59,
-      "overallPercentage": 89.2,
-      "attendance": 90.8,
+      "cgpa": 9.57,
+      "overallPercentage": 90.67,
+      "attendance": 91.83,
       "status": "active"
     },
     {
@@ -954,6 +954,54 @@
       "title": "Official Result Published: Semester 3",
       "body": "The Controller of Examinations has officially published the semester 3 results. Students and faculty can now view statements of grades and download official marksheets with the institutional seal.",
       "createdAt": "2026-10-02T04:10:49.365Z"
+    },
+    {
+      "id": 7,
+      "title": "Official Result Published: Semester 3",
+      "body": "The Controller of Examinations has officially published the semester 3 results. Students and faculty can now view statements of grades and download official marksheets with the institutional seal.",
+      "createdAt": "2026-10-02T04:20:04.260Z"
+    },
+    {
+      "id": 8,
+      "title": "Official Result Published: Semester 4",
+      "body": "The Controller of Examinations has officially published the semester 4 results. Students and faculty can now view statements of grades and download official marksheets with the institutional seal.",
+      "createdAt": "2026-10-02T04:20:07.893Z"
+    },
+    {
+      "id": 9,
+      "title": "Official Result Published: Semester 5",
+      "body": "The Controller of Examinations has officially published the semester 5 results. Students and faculty can now view statements of grades and download official marksheets with the institutional seal.",
+      "createdAt": "2026-10-02T04:20:10.759Z"
+    },
+    {
+      "id": 10,
+      "title": "Official Result Published: Semester 6",
+      "body": "The Controller of Examinations has officially published the semester 6 results. Students and faculty can now view statements of grades and download official marksheets with the institutional seal.",
+      "createdAt": "2026-10-02T04:20:13.286Z"
+    },
+    {
+      "id": 11,
+      "title": "Official Result Published: Semester 7",
+      "body": "The Controller of Examinations has officially published the semester 7 results. Students and faculty can now view statements of grades and download official marksheets with the institutional seal.",
+      "createdAt": "2026-10-02T04:20:18.370Z"
+    },
+    {
+      "id": 12,
+      "title": "Official Result Published: Semester 8",
+      "body": "The Controller of Examinations has officially published the semester 8 results. Students and faculty can now view statements of grades and download official marksheets with the institutional seal.",
+      "createdAt": "2026-10-02T04:20:21.160Z"
+    },
+    {
+      "id": 13,
+      "title": "Official Result Published: Semester 2",
+      "body": "Official Notice: Semester 2 results are published with institutional seals.",
+      "createdAt": "2026-10-02T05:09:53.311Z"
+    },
+    {
+      "id": 14,
+      "title": "Official Results Published: II Year (Semesters 3 & 4)",
+      "body": "The Controller of Examinations has officially released the II Year semester examination results. All students can now inspect semester marks and print sealed official marksheets.",
+      "createdAt": "2026-10-02T05:09:53.326Z"
     }
   ],
   "resultsPublication": {
@@ -964,38 +1012,41 @@
     },
     "2": {
       "isPublished": true,
-      "publishedAt": "2026-09-20T11:00:00.000Z",
-      "publishedBy": "AJV Controller of Examinations"
+      "publishedAt": "2026-10-02T05:09:53.310Z",
+      "publishedBy": "AJV Administrator",
+      "sessionName": "April / May 2026 Autonomous Session"
     },
     "3": {
       "isPublished": false,
       "publishedAt": null,
-      "publishedBy": null
+      "publishedBy": null,
+      "sessionName": "April / May 2026 End Semester Examinations"
     },
     "4": {
       "isPublished": false,
       "publishedAt": null,
-      "publishedBy": null
+      "publishedBy": null,
+      "sessionName": "April / May 2026 End Semester Examinations"
     },
     "5": {
-      "isPublished": false,
-      "publishedAt": null,
-      "publishedBy": null
+      "isPublished": true,
+      "publishedAt": "2026-10-02T04:20:10.758Z",
+      "publishedBy": "AJV Administrator"
     },
     "6": {
-      "isPublished": false,
-      "publishedAt": null,
-      "publishedBy": null
+      "isPublished": true,
+      "publishedAt": "2026-10-02T04:20:13.284Z",
+      "publishedBy": "AJV Administrator"
     },
     "7": {
-      "isPublished": false,
-      "publishedAt": null,
-      "publishedBy": null
+      "isPublished": true,
+      "publishedAt": "2026-10-02T04:20:18.369Z",
+      "publishedBy": "AJV Administrator"
     },
     "8": {
-      "isPublished": false,
-      "publishedAt": null,
-      "publishedBy": null
+      "isPublished": true,
+      "publishedAt": "2026-10-02T04:20:21.158Z",
+      "publishedBy": "AJV Administrator"
     }
   }
 }

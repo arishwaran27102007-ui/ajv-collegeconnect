@@ -457,9 +457,40 @@ app.get("/api/results/status", auth, async (_req, res) => {
 });
 
 // Admin-only: Publish or Unpublish semester results
+// Comprehensive Examination Analytics for all 8 Semesters (Admin Only)
+app.get("/api/admin/results/analytics", auth, role("admin"), async (req, res) => {
+  try {
+    const analytics = await db.getAllSemestersAnalytics();
+    res.json({ analytics });
+  } catch (e) {
+    console.error("[Results Analytics Error]:", e);
+    res.status(500).json({ message: "Failed to generate examination analytics." });
+  }
+});
+
+// Tabulated Mark Register (TMR) / Broadsheet for Examination Board (Admin & Staff)
+app.get("/api/admin/results/broadsheet/:semester", auth, role("admin", "staff"), async (req, res) => {
+  const semester = Number(req.params.semester);
+  if (!semester || semester < 1 || semester > 8) {
+    return res.status(400).json({ message: "Valid semester (1 to 8) is required." });
+  }
+
+  try {
+    const broadsheet = await db.getSemesterBroadsheet(semester);
+    res.json(broadsheet);
+  } catch (e) {
+    console.error("[Broadsheet Error]:", e);
+    res.status(500).json({ message: "Failed to load examination broadsheet." });
+  }
+});
+
+// Publish / Unpublish Single Semester (Admin Only)
 app.post("/api/admin/results/publish", auth, role("admin"), async (req, res) => {
   const semester = Number(req.body.semester);
   const isPublished = Boolean(req.body.isPublished);
+  const sessionName = req.body.sessionName ? String(req.body.sessionName).trim() : null;
+  const broadcastAnnouncement = req.body.broadcastAnnouncement !== false;
+  const customNotice = req.body.customNotice ? String(req.body.customNotice).trim() : null;
 
   if (!semester || semester < 1 || semester > 8) {
     return res.status(400).json({ message: "Valid semester (1 to 8) is required." });
@@ -468,13 +499,14 @@ app.post("/api/admin/results/publish", auth, role("admin"), async (req, res) => 
   try {
     const adminUser = await db.findUserById(req.user.id);
     const publisherName = adminUser ? adminUser.fullName : "AJV Controller of Examinations";
-    const status = await db.setSemesterPublishStatus(semester, isPublished, publisherName);
+    const status = await db.setSemesterPublishStatus(semester, isPublished, publisherName, sessionName);
 
-    // Post an announcement when results are officially published
-    if (isPublished) {
+    // Optional campus bulletin broadcast
+    if (isPublished && broadcastAnnouncement) {
+      const defaultNotice = `The Controller of Examinations has officially published the Semester ${semester} results (${sessionName || 'Regular Session'}). Students and faculty can now view statements of grades and download official marksheets with the institutional seal.`;
       await db.createAnnouncement(
         `Official Result Published: Semester ${semester}`,
-        `The Controller of Examinations has officially published the semester ${semester} results. Students and faculty can now view statements of grades and download official marksheets with the institutional seal.`
+        customNotice || defaultNotice
       ).catch(() => {});
     }
 
@@ -487,6 +519,46 @@ app.post("/api/admin/results/publish", auth, role("admin"), async (req, res) => 
   } catch (e) {
     console.error("[Publish Results Error]:", e);
     res.status(500).json({ message: "Failed to update publication status." });
+  }
+});
+
+// Bulk Publish / Unpublish by Academic Year (Admin Only)
+app.post("/api/admin/results/publish-year", auth, role("admin"), async (req, res) => {
+  const year = req.body.year; // e.g. "I Year", "II Year", "III Year", "IV Year"
+  const isPublished = Boolean(req.body.isPublished);
+  const yearMap = {
+    "I Year": [1, 2],
+    "II Year": [3, 4],
+    "III Year": [5, 6],
+    "IV Year": [7, 8]
+  };
+
+  const sems = yearMap[year];
+  if (!sems) {
+    return res.status(400).json({ message: "Invalid academic year specified." });
+  }
+
+  try {
+    const adminUser = await db.findUserById(req.user.id);
+    const publisherName = adminUser ? adminUser.fullName : "AJV Controller of Examinations";
+
+    for (const sem of sems) {
+      await db.setSemesterPublishStatus(sem, isPublished, publisherName);
+    }
+
+    if (isPublished) {
+      await db.createAnnouncement(
+        `Official Results Published: ${year} (Semesters ${sems.join(" & ")})`,
+        `The Controller of Examinations has officially released the ${year} semester examination results. All students can now inspect semester marks and print sealed official marksheets.`
+      ).catch(() => {});
+    }
+
+    res.json({
+      message: `${year} results (Semesters ${sems.join(" & ")}) ${isPublished ? 'published' : 'unpublished'} successfully!`
+    });
+  } catch (e) {
+    console.error("[Publish Year Error]:", e);
+    res.status(500).json({ message: "Failed to update year publication status." });
   }
 });
 
