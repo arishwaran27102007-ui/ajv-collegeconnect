@@ -297,7 +297,29 @@ function renderLogin() {
 
           <div class="notice">
             <b>Demo Credentials:</b><br>
-            ${state.role === 'student' ? 'Student ID: <code>AJVSTU001</code> / Password: <code>Student@123</code> (or temporary <code>ajv@123</code>)' : (state.role === 'staff' ? 'Faculty ID: <code>FAC001</code> / Password: <code>Faculty@123</code>' : 'Admin ID: <code>ADMIN001</code> / Password: <code>Admin@123</code>')}
+            ${state.role === 'student' ? `
+              <div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;">
+                <button type="button" class="btn mini gold" style="text-align:left;padding:7px 10px;" onclick="quickStudentLogin('AJVSTU001', 'Student@123')">
+                  ⚡ 1-Click Sign In: <b>AJVSTU001</b> (Ananya Kumar • I Year)
+                </button>
+                <button type="button" class="btn mini secondary" style="text-align:left;padding:7px 10px;" onclick="quickStudentLogin('AJVSTU004', 'Student@123')">
+                  ⚡ 1-Click Sign In: <b>AJVSTU004</b> (Arishwaran J • II Year)
+                </button>
+              </div>
+              <div style="margin-top:6px;font-size:11px;color:#64748b;">
+                Default password: <code>Student@123</code> (or temporary <code>ajv@123</code>)
+              </div>
+            ` : (state.role === 'staff' ? `
+              Faculty ID: <code>FAC001</code> / Password: <code>Faculty@123</code>
+              <button type="button" class="btn mini secondary" style="margin-top:6px;width:100%;" onclick="quickStudentLogin('FAC001', 'Faculty@123')">
+                ⚡ 1-Click Fill Faculty
+              </button>
+            ` : `
+              Admin ID: <code>ADMIN001</code> / Password: <code>Admin@123</code>
+              <button type="button" class="btn mini secondary" style="margin-top:6px;width:100%;" onclick="quickStudentLogin('ADMIN001', 'Admin@123')">
+                ⚡ 1-Click Fill Admin
+              </button>
+            `)}
           </div>
 
           <button class="btn full">Secure Sign In →</button>
@@ -305,6 +327,18 @@ function renderLogin() {
       </div>
     </div>
   `;
+}
+
+function quickStudentLogin(id, pass) {
+  const idEl = document.getElementById("loginId");
+  const passEl = document.getElementById("password");
+  if (idEl) idEl.value = id;
+  if (passEl) passEl.value = pass;
+  const form = document.querySelector("form");
+  if (form) {
+    const submitBtn = form.querySelector("button[type='submit']") || form.querySelector(".btn.full");
+    if (submitBtn) submitBtn.click();
+  }
 }
 
 function promptAdminUnlock() {
@@ -687,6 +721,9 @@ async function studentDashboard(initialSem = 1) {
     const d = await api("/api/student/dashboard");
     const pubStatus = await api("/api/results/status").catch(() => ({ publishedSemesters: {} }));
     const pubMap = pubStatus.publishedSemesters || {};
+    const feeData = await api("/api/student/fees").catch(() => null);
+    const feeSummary = feeData?.summary || null;
+    const feeDueAmount = feeSummary ? (feeSummary.totalDue || 0) : 0;
     const isAttendanceLow = Number(d.academic.attendance) < 75;
 
     // Restriction 1: Student only gets published results for their studying year or below
@@ -703,8 +740,8 @@ async function studentDashboard(initialSem = 1) {
             <p class="muted">${esc(d.profile.loginId)} • ${esc(d.profile.email || "Pending Email")} • ${esc(d.profile.department)} • ${esc(d.profile.year)} Sec ${esc(d.profile.section || "A")}</p>
           </div>
           <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
-            <button class="btn secondary" onclick="showPage('fees')">💳 Fee Payment &amp; Receipts</button>
-            <button class="btn gold" onclick="openOfficialMarksheet(state.studentSelectedSem)">🎓 View Official Marksheet</button>
+            <button class="btn ${feeDueAmount > 0 ? 'gold' : 'secondary'}" onclick="showPage('fees')">💳 Fee Payment &amp; Receipts ${feeDueAmount > 0 ? `(₹${feeDueAmount.toLocaleString('en-IN')} Due)` : '✓'}</button>
+            <button class="btn secondary" onclick="openOfficialMarksheet(state.studentSelectedSem)">🎓 View Official Marksheet</button>
             <span class="status">● Enrolled Student</span>
           </div>
         </div>
@@ -727,6 +764,31 @@ async function studentDashboard(initialSem = 1) {
               <p>Your current attendance is below the mandatory 75% university eligibility requirement. Please meet your faculty advisor.</p>
             </div>
             <span class="pill grade-RA">Detention Risk</span>
+          </div>
+        ` : ''}
+
+        <!-- Dedicated Student Fee Payment & Clearance Status Card -->
+        ${feeSummary ? `
+          <div class="card callout" style="border-left: 6px solid ${feeDueAmount > 0 ? '#f59e0b' : '#10b981'}; background: ${feeDueAmount > 0 ? '#fffbeb' : '#ecfdf5'}; margin-top: 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+            <div>
+              <div class="eyebrow" style="color:${feeDueAmount > 0 ? '#d97706' : '#059669'};">COLLEGE FEE STATUS &amp; ONLINE PAYMENT</div>
+              <h3 style="color:${feeDueAmount > 0 ? '#92400e' : '#065f46'}; margin:2px 0;">
+                ${feeDueAmount > 0 ? `⚠️ Outstanding Institutional Dues: ₹${feeDueAmount.toLocaleString('en-IN')}` : '✓ All Semester College Fees Fully Paid 🎉'}
+              </h3>
+              <p style="color:${feeDueAmount > 0 ? '#92400e' : '#047857'}; opacity:0.9; margin:0; font-size:13px;">
+                ${feeDueAmount > 0 
+                  ? `${feeSummary.pendingCount} pending fee item(s) due across Tuition, Exam, Hostel, Caution Deposit, &amp; Placement. Pay online to download official stamped receipts.`
+                  : 'Your academic clearance is complete. Official stamped institutional cash receipts with university seal are available.'}
+              </p>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              ${feeDueAmount > 0 ? `
+                <button class="btn gold" onclick="openPayAllModal(${feeDueAmount}, ${feeSummary.pendingCount})">⚡ Settle All Dues (₹${feeDueAmount.toLocaleString('en-IN')})</button>
+                <button class="btn secondary" onclick="showPage('fees')">View Breakdown &amp; Pay Items →</button>
+              ` : `
+                <button class="btn secondary" onclick="showPage('fees')">📜 View Stamped Receipts →</button>
+              `}
+            </div>
           </div>
         ` : ''}
 
@@ -1363,8 +1425,9 @@ async function adminDashboard() {
             <h1>Administrator Control Center</h1>
             <p class="muted">Authorized Workstation (${window.location.hostname}). Full protection and credential governance.</p>
           </div>
-          <div style="display:flex;gap:10px;">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
             <button class="btn gold" onclick="openPublishResultsCenter()">📢 Publish Results (8 Semesters)</button>
+            <button class="btn secondary" onclick="showPage('fees')">💳 Fee Collections Ledger</button>
             <button class="btn secondary" onclick="openIssueFacultyModal()">+ Issue Faculty ID</button>
             <button class="btn secondary" onclick="openAnnouncementModal()">📢 Post Bulletin</button>
           </div>
@@ -3748,61 +3811,106 @@ function renderAdminFeesOverview() {
   `;
 }
 
-function viewStudentFeeBreakdown(studentId) {
-  const item = cachedAdminFeesSummary?.studentsFees.find(s => s.student.id === studentId);
-  if (!item) return;
+async function viewStudentFeeBreakdown(studentId) {
+  let item = cachedAdminFeesSummary?.studentsFees?.find(s => 
+    String(s.student.id) === String(studentId) || 
+    String(s.student.loginId).toLowerCase() === String(studentId).toLowerCase()
+  );
+
+  if (!item) {
+    try {
+      const data = await api(`/api/student/fees?studentId=${encodeURIComponent(studentId)}`);
+      if (data && data.fees) {
+        item = {
+          student: data.student,
+          summary: data.summary,
+          fees: data.fees
+        };
+      }
+    } catch (e) {
+      console.error("Failed to load student fee ledger:", e);
+    }
+  }
+
+  if (!item) {
+    return toast("Fee details could not be found for student #" + studentId, false);
+  }
+
+  const sTotalAssessed = item.summary.totalAssessed || item.summary.totalFee || item.fees.reduce((s, x) => s + Number(x.amount || 0), 0);
+  const sTotalPaid = item.summary.totalPaid || 0;
+  const sTotalDue = item.summary.totalDue || 0;
 
   modalDialog.innerHTML = `
     <div class="modal-header">
       <div>
-        <div class="eyebrow" style="color:var(--gold);">FEE LEDGER DETAILS</div>
+        <div class="eyebrow" style="color:var(--gold);">OFFICIAL STUDENT FEE LEDGER</div>
         <h3 style="margin:2px 0;">${esc(item.student.fullName)} (${esc(item.student.loginId)})</h3>
+        <p class="muted" style="margin:2px 0 0;font-size:12px;">${esc(item.student.department)} • ${esc(item.student.year)} • Enrolled Student</p>
       </div>
       <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
     </div>
 
     <div class="modal-body" style="padding:16px;">
-      <div style="display:flex;justify-content:space-between;background:#f8fafc;padding:12px;border-radius:6px;margin-bottom:14px;font-size:13px;">
-        <div><b>Department:</b> ${esc(item.student.department)} (${esc(item.student.year)})</div>
-        <div><b>Total Due:</b> <span style="color:#d97706;font-weight:700;">₹${item.summary.totalDue.toLocaleString('en-IN')}</span></div>
-        <div><b>Total Paid:</b> <span style="color:#059669;font-weight:700;">₹${item.summary.totalPaid.toLocaleString('en-IN')}</span></div>
+      <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;background:#f8fafc;padding:12px 16px;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:16px;font-size:13px;">
+        <div><b>Assessed Total:</b> <span style="color:var(--navy);font-weight:700;">₹${sTotalAssessed.toLocaleString('en-IN')}</span></div>
+        <div><b>Paid to Date:</b> <span style="color:#059669;font-weight:700;">₹${sTotalPaid.toLocaleString('en-IN')}</span></div>
+        <div><b>Outstanding Due:</b> <span style="color:${sTotalDue > 0 ? '#d97706' : '#059669'};font-weight:700;">₹${sTotalDue.toLocaleString('en-IN')}</span></div>
+        <div><b>Clearance:</b> <span class="fee-badge ${sTotalDue === 0 ? 'paid' : 'due'}">${sTotalDue === 0 ? '✓ No Dues' : `⏳ ${item.summary.pendingCount || 0} Pending`}</span></div>
       </div>
 
-      <table class="table">
-        <thead>
-          <tr>
-            <th>Fee Title</th>
-            <th>Sem</th>
-            <th>Amount</th>
-            <th>Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${item.fees.map(f => `
+      <div style="overflow-x:auto;">
+        <table class="table">
+          <thead>
             <tr>
-              <td>
-                <b>${esc(f.title)}</b><br>
-                <span class="muted" style="font-size:11px;">${esc(f.description)}</span>
-              </td>
-              <td>Sem ${f.semester}</td>
-              <td><b>₹${f.amount.toLocaleString('en-IN')}</b></td>
-              <td>
-                <span class="fee-badge ${f.status === 'PAID' ? 'paid' : 'due'}">
-                  ${f.status === 'PAID' ? '✓ Paid' : '⏳ Due'}
-                </span>
-              </td>
-              <td>
-                ${f.status === 'PAID' ? `
-                  <button class="btn mini gold" onclick="openOfficialFeeReceipt('${f.id}')">Receipt</button>
-                ` : `
-                  <span class="muted" style="font-size:11px;">Due ${new Date(f.dueDate).toLocaleDateString('en-IN')}</span>
-                `}
-              </td>
+              <th>Fee Category &amp; Particulars</th>
+              <th>Sem</th>
+              <th>Amount</th>
+              <th>Status</th>
+              <th>Payment Info / Due Date</th>
+              <th style="text-align:right;">Receipt / Action</th>
             </tr>
-          `).join("")}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            ${item.fees.map(f => `
+              <tr>
+                <td>
+                  <b>${esc(f.title)}</b><br>
+                  <span class="muted" style="font-size:11px;">${esc(f.category || 'Academic Fee')}</span>
+                  ${f.breakdown && f.breakdown.length > 0 ? `
+                    <div style="font-size:11px;color:#64748b;margin-top:2px;">
+                      ${f.breakdown.map(b => `${esc(b.item)}: ₹${Number(b.amount).toLocaleString('en-IN')}`).join(' • ')}
+                    </div>
+                  ` : ''}
+                </td>
+                <td>Sem ${f.semester}</td>
+                <td><b>₹${Number(f.amount).toLocaleString('en-IN')}</b></td>
+                <td>
+                  <span class="fee-badge ${f.status === 'PAID' ? 'paid' : 'due'}">
+                    ${f.status === 'PAID' ? '✓ Paid' : '⏳ Due'}
+                  </span>
+                </td>
+                <td>
+                  ${f.status === 'PAID' ? `
+                    <code style="font-size:11px;color:#059669;">${esc(f.transactionId || 'PAID')}</code><br>
+                    <span class="muted" style="font-size:10px;">${f.paidAt ? new Date(f.paidAt).toLocaleDateString('en-IN') : 'Completed'}</span>
+                  ` : `
+                    <span style="font-size:11px;color:#d97706;font-weight:600;">Due: ${new Date(f.dueDate).toLocaleDateString('en-IN')}</span>
+                  `}
+                </td>
+                <td style="text-align:right;">
+                  ${f.status === 'PAID' ? `
+                    <button class="btn mini gold" onclick="openOfficialFeeReceipt('${f.id}')">📜 Stamped Receipt</button>
+                  ` : `
+                    <button class="btn mini primary" style="background:#059669;color:#fff;" onclick="adminCollectStudentFee('${item.student.id}', '${f.id}', '${esc(f.title)}', ${f.amount})">
+                      💵 Collect / Mark Paid
+                    </button>
+                  `}
+                </td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div class="modal-footer">
@@ -3810,6 +3918,31 @@ function viewStudentFeeBreakdown(studentId) {
     </div>
   `;
   modalDialog.showModal();
+}
+
+async function adminCollectStudentFee(studentId, feeId, feeTitle, amount) {
+  if (!confirm(`Confirm recording offline Cash / DD payment for:\n\nFee: ${feeTitle}\nAmount: ₹${amount.toLocaleString('en-IN')}\n\nThis will mark the fee as PAID and generate an official institutional stamped receipt.`)) {
+    return;
+  }
+
+  try {
+    const res = await api(`/api/student/fees/${feeId}/pay`, {
+      method: "POST",
+      body: {
+        studentId: Number(studentId),
+        paymentMode: "CASH (OFFICE COLLECTION)",
+        details: "Direct Treasury Cash Receipt"
+      }
+    });
+
+    toast(`Payment of ₹${amount.toLocaleString('en-IN')} recorded successfully! Ref: ${res.transactionId}`, true);
+    await openAdminFeesOverview();
+    setTimeout(() => {
+      viewStudentFeeBreakdown(studentId);
+    }, 200);
+  } catch (err) {
+    toast(err.message, false);
+  }
 }
 
 // -------------------------------------------------------------

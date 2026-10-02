@@ -39,7 +39,7 @@
     {
       "id": 3,
       "loginId": "AJVSTU001",
-      "passwordHash": "$2a$10$7iqzH4iT8SEBsgn6W2ii1uZSljrhuLSStFSJjLhq9VFevFrOLLg8.",
+      "passwordHash": "$2a$10$Gjwiwc4sUzzgdDrKfxlPWuT9aNyqmZ2n7MOgz9ESjT6EMNxdpT9N2",
       "role": "student",
       "fullName": "Ananya Kumar",
       "email": "stu001@ajv.edu",
@@ -60,7 +60,7 @@
     {
       "id": 4,
       "loginId": "AJVSTU002",
-      "passwordHash": "$2a$10$vbMZUU0WDCv/5Vbga0eQ7uhnCZjVxUZDGoI8DIcLctSmFlXb42BbG",
+      "passwordHash": "$2a$10$Gjwiwc4sUzzgdDrKfxlPWuT9aNyqmZ2n7MOgz9ESjT6EMNxdpT9N2",
       "role": "student",
       "fullName": "Kavin Raj",
       "email": "stu002@ajv.edu",
@@ -81,7 +81,7 @@
     {
       "id": 5,
       "loginId": "AJVSTU003",
-      "passwordHash": "$2a$10$Cl1tU/q4Vdn./OoQMhwOx.TO7mCJS.xYMEl/qEeShUdBnL8yuxzcy",
+      "passwordHash": "$2a$10$Gjwiwc4sUzzgdDrKfxlPWuT9aNyqmZ2n7MOgz9ESjT6EMNxdpT9N2",
       "role": "student",
       "fullName": "Meera S",
       "email": "stu003@ajv.edu",
@@ -102,7 +102,7 @@
     {
       "id": 6,
       "loginId": "AJVSTU004",
-      "passwordHash": "$2a$10$2Gdvn2K2hSkPLnJThlIFK..zZpEjx8TUSDgz4R.hpNb8tJi.pYSfW",
+      "passwordHash": "$2a$10$Gjwiwc4sUzzgdDrKfxlPWuT9aNyqmZ2n7MOgz9ESjT6EMNxdpT9N2",
       "role": "student",
       "fullName": "Arishwaran J",
       "email": "arishwaran27102007@gmail.com",
@@ -123,7 +123,7 @@
     {
       "id": 7,
       "loginId": "AJVSTU005",
-      "passwordHash": "$2a$10$xGApikM5DpIdrDCnuCL46ueiTj4L7p8y4mb4FwIWYfNsm3puNT212",
+      "passwordHash": "$2a$10$Gjwiwc4sUzzgdDrKfxlPWuT9aNyqmZ2n7MOgz9ESjT6EMNxdpT9N2",
       "role": "student",
       "fullName": "Angelin",
       "email": "angelin@ajv.edu",
@@ -144,7 +144,7 @@
     {
       "id": 8,
       "loginId": "AJVSTU006",
-      "passwordHash": "$2a$10$n1PsXI5EPoap0NYt5eLpouNk.tR3Bf4w/7m/Znj6yzLboEift6LsG",
+      "passwordHash": "$2a$10$Gjwiwc4sUzzgdDrKfxlPWuT9aNyqmZ2n7MOgz9ESjT6EMNxdpT9N2",
       "role": "student",
       "fullName": "Vigneshwaran M",
       "email": "vigneshwaranm0006@ajv.edu",
@@ -182,7 +182,7 @@
     {
       "id": 10,
       "loginId": "AJVSTU007",
-      "passwordHash": "$2a$10$f0QuTPJQt7sVrw33Eh03aerrm4eykoYz2IpI.oCHGuFgb.JTHFicG",
+      "passwordHash": "$2a$10$Gjwiwc4sUzzgdDrKfxlPWuT9aNyqmZ2n7MOgz9ESjT6EMNxdpT9N2",
       "role": "student",
       "fullName": "Kavitha R",
       "email": "kavithar0007@ajv.edu",
@@ -204,7 +204,7 @@
     {
       "id": 11,
       "loginId": "AJVSTU008",
-      "passwordHash": ".",
+      "passwordHash": "$2a$10$Gjwiwc4sUzzgdDrKfxlPWuT9aNyqmZ2n7MOgz9ESjT6EMNxdpT9N2",
       "role": "student",
       "fullName": "Rahul Verma",
       "email": "rahul0008@ajv.edu",
@@ -225,7 +225,7 @@
     {
       "id": 12,
       "loginId": "AJVSTU009",
-      "passwordHash": ".",
+      "passwordHash": "$2a$10$Gjwiwc4sUzzgdDrKfxlPWuT9aNyqmZ2n7MOgz9ESjT6EMNxdpT9N2",
       "role": "student",
       "fullName": "Sanjay Krishnan",
       "email": "sanjay0009@ajv.edu",
@@ -1203,13 +1203,14 @@
       "semester": 2,
       "academicYear": "2025-2026",
       "amount": 45000,
-      "paidAmount": 0,
-      "status": "DUE",
+      "paidAmount": 45000,
+      "status": "PAID",
       "dueDate": "2026-02-15",
-      "paidAt": null,
-      "paymentMethod": null,
-      "transactionId": null,
-      "receiptNo": null
+      "paidAt": "2026-10-02T05:59:34.903Z",
+      "paymentMethod": "UPI (Instant Online Payment)",
+      "transactionId": "AJV-TXN-MUQJZLYV-5729",
+      "receiptNo": "AJV/FEE/2026/0004-10",
+      "payerVpa": "Direct Online Portal"
     },
     {
       "id": 11,
