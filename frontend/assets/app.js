@@ -79,6 +79,7 @@ function layoutNav() {
     nav.innerHTML = `
       <button onclick="showPage('dashboard')">Dashboard</button>
       <button onclick="openPublishResultsCenter()" style="color:var(--gold);font-weight:700;">📢 Publish Results</button>
+      <button onclick="showPage('fees')">💳 Fee Collections</button>
       <button onclick="loadFaculty()">Faculty</button>
       <button onclick="loadStudents()">Students</button>
       <button onclick="showPage('profile')">Profile</button>
@@ -88,6 +89,7 @@ function layoutNav() {
     nav.innerHTML = `
       <button onclick="showPage('dashboard')">Dashboard</button>
       <button onclick="openFacultyResultsView()" style="color:var(--gold);font-weight:700;">🎓 Results &amp; Marksheets</button>
+      <button onclick="showPage('fees')">💳 Student Fees</button>
       <button onclick="loadStudents()">Students</button>
       <button onclick="showPage('profile')">Profile</button>
       <button onclick="logout()">Logout</button>
@@ -96,6 +98,7 @@ function layoutNav() {
     nav.innerHTML = `
       <button onclick="showPage('dashboard')">Dashboard</button>
       <button onclick="showPage('results')" style="color:var(--gold);font-weight:700;">🎓 Semester Marksheets</button>
+      <button onclick="showPage('fees')" style="color:#10b981;font-weight:700;">💳 Fee Payment</button>
       <button onclick="showPage('profile')">Profile</button>
       <button onclick="logout()">Logout</button>
     `;
@@ -686,7 +689,10 @@ async function studentDashboard(initialSem = 1) {
     const pubMap = pubStatus.publishedSemesters || {};
     const isAttendanceLow = Number(d.academic.attendance) < 75;
 
-    state.studentSelectedSem = state.studentSelectedSem || initialSem || 1;
+    // Restriction 1: Student only gets published results for their studying year or below
+    const yearMaxSemMap = { "I Year": 2, "II Year": 4, "III Year": 6, "IV Year": 8 };
+    const studentMaxSem = yearMaxSemMap[d.profile.year] || 2;
+    state.studentSelectedSem = Math.min(state.studentSelectedSem || initialSem || 1, studentMaxSem);
 
     app.innerHTML = `
       <div class="dashboard">
@@ -696,7 +702,8 @@ async function studentDashboard(initialSem = 1) {
             <h1>Welcome, ${esc(d.profile.fullName)} 👋</h1>
             <p class="muted">${esc(d.profile.loginId)} • ${esc(d.profile.email || "Pending Email")} • ${esc(d.profile.department)} • ${esc(d.profile.year)} Sec ${esc(d.profile.section || "A")}</p>
           </div>
-          <div style="display:flex;gap:10px;align-items:center;">
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <button class="btn secondary" onclick="showPage('fees')">💳 Fee Payment &amp; Receipts</button>
             <button class="btn gold" onclick="openOfficialMarksheet(state.studentSelectedSem)">🎓 View Official Marksheet</button>
             <span class="status">● Enrolled Student</span>
           </div>
@@ -752,9 +759,9 @@ async function studentDashboard(initialSem = 1) {
           </div>
 
           <div class="stat">
-            <span class="label">Academic Year</span>
-            <b style="font-size:18px;">${esc(d.profile.year)}</b>
-            <small>8 Total Semesters</small>
+            <span class="label">Studying Year</span>
+            <b style="font-size:18px;color:var(--navy);">${esc(d.profile.year)}</b>
+            <small>Semesters 1 to ${studentMaxSem}</small>
           </div>
         </div>
 
@@ -770,10 +777,11 @@ async function studentDashboard(initialSem = 1) {
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
             <div>
               <div class="eyebrow">ACADEMIC RESULTS &amp; MARKSHEETS</div>
-              <h2 style="margin:4px 0;">4 Years • 8 Semesters Grade Statements</h2>
-              <p class="muted" style="margin:0;font-size:13px;">Official semester results published by the Administration &amp; Examination Controller. Select a semester to inspect marks and download the sealed marksheet.</p>
+              <h2 style="margin:4px 0;">Curriculum Grade Statements (Studying: ${esc(d.profile.year)})</h2>
+              <p class="muted" style="margin:0;font-size:13px;">Official semester results published by the Administration. Results are released strictly according to your enrolled academic year progression.</p>
             </div>
-            <div style="display:flex;gap:8px;">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <span class="badge" style="background:#e0f2fe;color:#0369a1;font-weight:700;">🎓 Enrolled: ${esc(d.profile.year)}</span>
               <span class="badge" style="background:#ecfdf5;color:#059669;font-weight:700;">● Admin Published</span>
               <span class="badge" style="background:#f1f5f9;color:#64748b;font-weight:700;">● In Valuation</span>
             </div>
@@ -781,8 +789,9 @@ async function studentDashboard(initialSem = 1) {
 
           <!-- 4 Year Groups containing 8 Semesters -->
           <div class="year-sem-container">
-            <div class="year-group">
-              <div class="year-label">I YEAR</div>
+            <!-- I YEAR -->
+            <div class="year-group ${studentMaxSem < 2 ? 'year-inactive' : ''}">
+              <div class="year-label">I YEAR ${d.profile.year === 'I Year' ? '★' : ''}</div>
               <div class="sem-btns">
                 <button class="sem-btn ${state.studentSelectedSem === 1 ? 'active' : ''}" onclick="selectStudentSem(1)">
                   <span>Semester 1</span>
@@ -795,45 +804,81 @@ async function studentDashboard(initialSem = 1) {
               </div>
             </div>
 
-            <div class="year-group">
-              <div class="year-label">II YEAR</div>
+            <!-- II YEAR -->
+            <div class="year-group ${studentMaxSem < 4 ? 'year-inactive' : ''}">
+              <div class="year-label">II YEAR ${d.profile.year === 'II Year' ? '★' : ''}</div>
               <div class="sem-btns">
-                <button class="sem-btn ${state.studentSelectedSem === 3 ? 'active' : ''}" onclick="selectStudentSem(3)">
-                  <span>Semester 3</span>
-                  ${pubMap['3']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
-                </button>
-                <button class="sem-btn ${state.studentSelectedSem === 4 ? 'active' : ''}" onclick="selectStudentSem(4)">
-                  <span>Semester 4</span>
-                  ${pubMap['4']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
-                </button>
+                ${studentMaxSem >= 4 ? `
+                  <button class="sem-btn ${state.studentSelectedSem === 3 ? 'active' : ''}" onclick="selectStudentSem(3)">
+                    <span>Semester 3</span>
+                    ${pubMap['3']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                  </button>
+                  <button class="sem-btn ${state.studentSelectedSem === 4 ? 'active' : ''}" onclick="selectStudentSem(4)">
+                    <span>Semester 4</span>
+                    ${pubMap['4']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                  </button>
+                ` : `
+                  <button class="sem-btn locked" onclick="notifyHigherYearLocked(3, '${esc(d.profile.year)}', ${studentMaxSem})">
+                    <span>Semester 3</span>
+                    <span class="tag-locked">🔒 Higher Year</span>
+                  </button>
+                  <button class="sem-btn locked" onclick="notifyHigherYearLocked(4, '${esc(d.profile.year)}', ${studentMaxSem})">
+                    <span>Semester 4</span>
+                    <span class="tag-locked">🔒 Higher Year</span>
+                  </button>
+                `}
               </div>
             </div>
 
-            <div class="year-group">
-              <div class="year-label">III YEAR</div>
+            <!-- III YEAR -->
+            <div class="year-group ${studentMaxSem < 6 ? 'year-inactive' : ''}">
+              <div class="year-label">III YEAR ${d.profile.year === 'III Year' ? '★' : ''}</div>
               <div class="sem-btns">
-                <button class="sem-btn ${state.studentSelectedSem === 5 ? 'active' : ''}" onclick="selectStudentSem(5)">
-                  <span>Semester 5</span>
-                  ${pubMap['5']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
-                </button>
-                <button class="sem-btn ${state.studentSelectedSem === 6 ? 'active' : ''}" onclick="selectStudentSem(6)">
-                  <span>Semester 6</span>
-                  ${pubMap['6']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
-                </button>
+                ${studentMaxSem >= 6 ? `
+                  <button class="sem-btn ${state.studentSelectedSem === 5 ? 'active' : ''}" onclick="selectStudentSem(5)">
+                    <span>Semester 5</span>
+                    ${pubMap['5']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                  </button>
+                  <button class="sem-btn ${state.studentSelectedSem === 6 ? 'active' : ''}" onclick="selectStudentSem(6)">
+                    <span>Semester 6</span>
+                    ${pubMap['6']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                  </button>
+                ` : `
+                  <button class="sem-btn locked" onclick="notifyHigherYearLocked(5, '${esc(d.profile.year)}', ${studentMaxSem})">
+                    <span>Semester 5</span>
+                    <span class="tag-locked">🔒 Higher Year</span>
+                  </button>
+                  <button class="sem-btn locked" onclick="notifyHigherYearLocked(6, '${esc(d.profile.year)}', ${studentMaxSem})">
+                    <span>Semester 6</span>
+                    <span class="tag-locked">🔒 Higher Year</span>
+                  </button>
+                `}
               </div>
             </div>
 
-            <div class="year-group">
-              <div class="year-label">IV YEAR</div>
+            <!-- IV YEAR -->
+            <div class="year-group ${studentMaxSem < 8 ? 'year-inactive' : ''}">
+              <div class="year-label">IV YEAR ${d.profile.year === 'IV Year' ? '★' : ''}</div>
               <div class="sem-btns">
-                <button class="sem-btn ${state.studentSelectedSem === 7 ? 'active' : ''}" onclick="selectStudentSem(7)">
-                  <span>Semester 7</span>
-                  ${pubMap['7']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
-                </button>
-                <button class="sem-btn ${state.studentSelectedSem === 8 ? 'active' : ''}" onclick="selectStudentSem(8)">
-                  <span>Semester 8</span>
-                  ${pubMap['8']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
-                </button>
+                ${studentMaxSem >= 8 ? `
+                  <button class="sem-btn ${state.studentSelectedSem === 7 ? 'active' : ''}" onclick="selectStudentSem(7)">
+                    <span>Semester 7</span>
+                    ${pubMap['7']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                  </button>
+                  <button class="sem-btn ${state.studentSelectedSem === 8 ? 'active' : ''}" onclick="selectStudentSem(8)">
+                    <span>Semester 8</span>
+                    ${pubMap['8']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                  </button>
+                ` : `
+                  <button class="sem-btn locked" onclick="notifyHigherYearLocked(7, '${esc(d.profile.year)}', ${studentMaxSem})">
+                    <span>Semester 7</span>
+                    <span class="tag-locked">🔒 Higher Year</span>
+                  </button>
+                  <button class="sem-btn locked" onclick="notifyHigherYearLocked(8, '${esc(d.profile.year)}', ${studentMaxSem})">
+                    <span>Semester 8</span>
+                    <span class="tag-locked">🔒 Higher Year</span>
+                  </button>
+                `}
               </div>
             </div>
           </div>
@@ -877,10 +922,16 @@ async function studentDashboard(initialSem = 1) {
   }
 }
 
+function notifyHigherYearLocked(sem, year, maxSem) {
+  toast(`Semester ${sem} is restricted. As a ${year} student, your enrolled results cover Semesters 1 to ${maxSem}.`, false);
+  loadStudentSemResult(sem);
+}
+
 async function selectStudentSem(sem) {
   state.studentSelectedSem = sem;
-  document.querySelectorAll(".sem-btn").forEach((b, idx) => {
-    b.classList.toggle("active", idx + 1 === sem);
+  document.querySelectorAll(".sem-btn").forEach((b) => {
+    const isThisSem = b.textContent.includes(`Semester ${sem}`);
+    b.classList.toggle("active", isThisSem);
   });
   loadStudentSemResult(sem);
 }
@@ -892,6 +943,23 @@ async function loadStudentSemResult(sem) {
   container.innerHTML = `<div style="text-align:center;padding:24px;color:var(--muted);">Loading Semester ${sem} records...</div>`;
   try {
     const data = await api(`/api/results/semester/${sem}`);
+
+    // If higher-year restriction applies to this student
+    if (data.isEligible === false) {
+      container.innerHTML = `
+        <div style="background:#f8fafc;border:2px dashed #cbd5e1;border-radius:12px;padding:36px 24px;text-align:center;">
+          <div style="font-size:42px;margin-bottom:8px;">🔒</div>
+          <h3 style="color:var(--navy);margin:4px 0;">Semester ${sem} Results Not Applicable to ${esc(data.studentYear || 'Your Academic Year')}</h3>
+          <p class="muted" style="max-width:550px;margin:8px auto 16px;font-size:14px;">
+            ${esc(data.message || 'Results are restricted to students studying in that academic year. Your enrolled progression corresponds to ' + data.studentYear + ' (Semesters 1 to ' + data.maxEligibleSemester + ').')}
+          </p>
+          <span class="badge" style="background:#f1f5f9;color:#475569;font-weight:700;padding:6px 14px;border-radius:999px;">
+            Enrolled Progression: Semesters 1 to ${data.maxEligibleSemester || 2}
+          </span>
+        </div>
+      `;
+      return;
+    }
 
     if (data.isPublished === false) {
       container.innerHTML = `
@@ -2970,6 +3038,781 @@ async function doFirstPasswordChange(e) {
 }
 
 // -------------------------------------------------------------
+// College Fee Payment Portal & Institutional Receipts
+// -------------------------------------------------------------
+
+let cachedStudentFeesData = null;
+let currentFeeFilter = { category: "all", status: "all" };
+
+async function openStudentFeesView() {
+  try {
+    const data = await api("/api/student/fees");
+    cachedStudentFeesData = data;
+    renderStudentFeesView();
+  } catch (err) {
+    toast(err.message, false);
+  }
+}
+
+function filterStudentFees(category, status) {
+  if (category !== undefined) currentFeeFilter.category = category;
+  if (status !== undefined) currentFeeFilter.status = status;
+  renderStudentFeesView();
+}
+
+function renderStudentFeesView() {
+  if (!cachedStudentFeesData) return;
+  const { student, summary, fees } = cachedStudentFeesData;
+  const totalAssessedAmt = summary.totalAssessed || summary.totalFee || fees.reduce((s, x) => s + Number(x.amount || 0), 0);
+
+  const filteredFees = fees.filter(f => {
+    if (currentFeeFilter.category !== "all" && f.category !== currentFeeFilter.category) return false;
+    if (currentFeeFilter.status !== "all" && f.status.toLowerCase() !== currentFeeFilter.status.toLowerCase()) return false;
+    return true;
+  });
+
+  const categories = [
+    { id: "all", label: "All Fees", icon: "📑" },
+    { id: "tuition", label: "Tuition & Academics", icon: "🎓" },
+    { id: "exam", label: "Examination Fees", icon: "📝" },
+    { id: "hostel", label: "Hostel & Dining", icon: "🏢" },
+    { id: "transport", label: "Campus Transport", icon: "🚌" },
+    { id: "deposit", label: "Caution Deposits", icon: "🛡️" },
+    { id: "placement", label: "Placement & Training", icon: "🚀" }
+  ];
+
+  app.innerHTML = `
+    <div class="dashboard">
+      <div class="dash-head">
+        <div>
+          <div class="eyebrow">FEE PAYMENT PORTAL</div>
+          <h1>College Fee Management 💳</h1>
+          <p class="muted">${esc(student.fullName)} (${esc(student.loginId)}) • ${esc(student.department)} • ${esc(student.year)}</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+          <button class="btn secondary" onclick="showPage('dashboard')">← Back to Dashboard</button>
+          ${summary.totalDue > 0 ? `
+            <button class="btn gold" onclick="openPayAllModal(${summary.totalDue}, ${summary.pendingCount})">⚡ Pay All Dues (₹${summary.totalDue.toLocaleString('en-IN')})</button>
+          ` : ''}
+        </div>
+      </div>
+
+      <!-- Summary Metrics -->
+      <div class="stats" style="margin-top:20px;">
+        <div class="stat">
+          <span class="label">Total Assessed</span>
+          <b style="font-size:22px;color:var(--navy);">₹${totalAssessedAmt.toLocaleString('en-IN')}</b>
+          <small>Academic Year Total (${fees.length} items)</small>
+        </div>
+        <div class="stat">
+          <span class="label">Total Paid to Date</span>
+          <b style="font-size:22px;color:#059669;">₹${summary.totalPaid.toLocaleString('en-IN')}</b>
+          <small>${fees.filter(f => f.status === 'PAID').length} items completed</small>
+        </div>
+        <div class="stat">
+          <span class="label">Outstanding Balance</span>
+          <b style="font-size:22px;color:${summary.totalDue > 0 ? '#d97706' : '#059669'};">₹${summary.totalDue.toLocaleString('en-IN')}</b>
+          <small>${summary.totalDue === 0 ? '✓ All dues cleared' : `${summary.pendingCount} pending payment(s)`}</small>
+        </div>
+        <div class="stat">
+          <span class="label">Payment Status</span>
+          <b style="font-size:18px;color:${summary.totalDue === 0 ? '#059669' : '#d97706'};">${summary.totalDue === 0 ? 'No Dues Pending' : 'Action Required'}</b>
+          <small>Verified by Finance Section</small>
+        </div>
+      </div>
+
+      ${summary.totalDue > 0 ? `
+        <div class="card callout" style="border-left: 6px solid #f59e0b; background: #fffbeb; margin-top: 16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+          <div>
+            <div class="eyebrow" style="color:#d97706;">PAYMENT NOTICE</div>
+            <h3 style="color:#92400e;margin:2px 0;">Outstanding Institutional Dues: ₹${summary.totalDue.toLocaleString('en-IN')}</h3>
+            <p style="color:#92400e;opacity:0.9;margin:0;font-size:13px;">Please clear overdue amounts before the deadline to avoid late clearance charges or exam hall ticket holds.</p>
+          </div>
+          <button class="btn gold" onclick="openPayAllModal(${summary.totalDue}, ${summary.pendingCount})">⚡ Settle All Dues (₹${summary.totalDue.toLocaleString('en-IN')})</button>
+        </div>
+      ` : `
+        <div class="card callout" style="border-left: 6px solid #10b981; background: #ecfdf5; margin-top: 16px;">
+          <div class="eyebrow" style="color:#059669;">CLEARANCE VERIFIED</div>
+          <h3 style="color:#065f46;margin:2px 0;">All College Fees Fully Paid 🎉</h3>
+          <p style="color:#047857;margin:0;font-size:13px;">Your official clearance is active. You can download and print official institutional stamped receipts for each fee item below.</p>
+        </div>
+      `}
+
+      <!-- Category Filter Pills -->
+      <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-top:24px;border-bottom:1px solid #e2e8f0;">
+        ${categories.map(c => `
+          <button class="btn mini ${currentFeeFilter.category === c.id ? 'primary' : 'secondary'}" 
+                  style="${currentFeeFilter.category === c.id ? 'background:var(--navy);color:#fff;' : ''}" 
+                  onclick="filterStudentFees('${c.id}', undefined)">
+            ${c.icon} ${c.label}
+          </button>
+        `).join("")}
+      </div>
+
+      <!-- Status Filter Toggle -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:16px;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;gap:6px;">
+          <button class="btn mini ${currentFeeFilter.status === 'all' ? 'gold' : 'secondary'}" onclick="filterStudentFees(undefined, 'all')">Show All (${fees.length})</button>
+          <button class="btn mini ${currentFeeFilter.status === 'due' ? 'gold' : 'secondary'}" onclick="filterStudentFees(undefined, 'due')">Pending / Due (${fees.filter(f => f.status === 'DUE').length})</button>
+          <button class="btn mini ${currentFeeFilter.status === 'paid' ? 'gold' : 'secondary'}" onclick="filterStudentFees(undefined, 'paid')">Paid &amp; Receipted (${fees.filter(f => f.status === 'PAID').length})</button>
+        </div>
+        <span class="muted" style="font-size:12px;">Displaying ${filteredFees.length} fee record(s)</span>
+      </div>
+
+      <!-- Fees Cards Grid -->
+      <div class="fee-card-grid">
+        ${filteredFees.length === 0 ? `
+          <div class="card" style="grid-column: 1 / -1; text-align:center; padding: 40px;">
+            <div style="font-size:40px;margin-bottom:8px;">🔍</div>
+            <h3>No fee items match the selected filter</h3>
+            <p class="muted">Try selecting "Show All" or choosing a different fee category.</p>
+            <button class="btn secondary" onclick="filterStudentFees('all', 'all')">Reset Filters</button>
+          </div>
+        ` : filteredFees.map(fee => `
+          <div class="fee-item-card ${fee.status === 'PAID' ? 'is-paid' : 'is-due'}">
+            <div>
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+                <span class="fee-badge ${fee.status === 'PAID' ? 'paid' : 'due'}">
+                  ${fee.status === 'PAID' ? '✓ Paid' : '⏳ Due'}
+                </span>
+                <span class="badge" style="background:#f1f5f9;color:#475569;font-size:11px;">Sem ${fee.semester} • ${fee.academicYear}</span>
+              </div>
+              <h3 style="margin:4px 0 6px;font-size:16px;color:var(--navy);">${esc(fee.title)}</h3>
+              <p class="muted" style="font-size:12px;margin:0 0 12px;min-height:32px;">${esc(fee.description)}</p>
+
+              <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 12px;margin-bottom:12px;font-size:12px;">
+                ${fee.breakdown.map(b => `
+                  <div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px dashed #e2e8f0;">
+                    <span style="color:#64748b;">${esc(b.item)}</span>
+                    <b>₹${b.amount.toLocaleString('en-IN')}</b>
+                  </div>
+                `).join("")}
+                <div style="display:flex;justify-content:space-between;padding:6px 0 2px;font-weight:700;color:var(--navy);font-size:13px;">
+                  <span>Total Amount</span>
+                  <span>₹${fee.amount.toLocaleString('en-IN')}</span>
+                </div>
+              </div>
+
+              ${fee.status === 'PAID' ? `
+                <div style="font-size:11px;color:#059669;margin-bottom:12px;">
+                  ✓ Paid on ${new Date(fee.paidAt).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}<br>
+                  <span style="color:#64748b;">Ref: <code>${esc(fee.transactionId)}</code> • Mode: ${esc(fee.paymentMode || 'ONLINE')}</span>
+                </div>
+              ` : `
+                <div style="font-size:11px;color:#d97706;margin-bottom:12px;">
+                  ⚠️ Due Date: <b>${new Date(fee.dueDate).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}</b>
+                </div>
+              `}
+            </div>
+
+            <div>
+              ${fee.status === 'PAID' ? `
+                <button class="btn gold full" onclick="openOfficialFeeReceipt('${fee.id}')">📜 View Official Stamped Receipt</button>
+              ` : `
+                <button class="btn full" style="background:linear-gradient(135deg,#d97706,#b45309);color:#fff;" onclick="openPaymentGatewayModal('${fee.id}', '${esc(fee.title)}', ${fee.amount})">
+                  💳 Pay Now (₹${fee.amount.toLocaleString('en-IN')}) →
+                </button>
+              `}
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+let currentPaymentMethod = "upi";
+
+function selectPaymentMethod(m) {
+  currentPaymentMethod = m;
+  document.querySelectorAll(".payment-tab-btn").forEach(b => b.classList.remove("active"));
+  const btn = document.getElementById("tab-" + m);
+  if (btn) btn.classList.add("active");
+
+  const views = ["upi", "card", "netbanking"];
+  views.forEach(v => {
+    const el = document.getElementById("pay-view-" + v);
+    if (el) el.style.display = v === m ? "block" : "none";
+  });
+}
+
+function openPaymentGatewayModal(feeId, feeTitle, amount) {
+  currentPaymentMethod = "upi";
+  modalDialog.innerHTML = `
+    <div class="modal-header">
+      <div>
+        <div class="eyebrow" style="color:var(--gold);">AJV SECURE PAYMENT GATEWAY</div>
+        <h3 style="margin:2px 0;">Settle Fee Payment</h3>
+      </div>
+      <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
+    </div>
+
+    <form onsubmit="executeFeePayment(event, '${feeId}')">
+      <div class="modal-body" style="padding-top:10px;">
+        <div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div>
+            <div style="font-size:12px;color:#64748b;">Paying for:</div>
+            <b style="font-size:14px;color:var(--navy);">${esc(feeTitle)}</b>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:12px;color:#64748b;">Payable Amount:</div>
+            <b style="font-size:20px;color:#059669;">₹${amount.toLocaleString('en-IN')}</b>
+          </div>
+        </div>
+
+        <div class="payment-tabs">
+          <button type="button" id="tab-upi" class="payment-tab-btn active" onclick="selectPaymentMethod('upi')">📱 UPI / QR Code</button>
+          <button type="button" id="tab-card" class="payment-tab-btn" onclick="selectPaymentMethod('card')">💳 Debit / Credit Card</button>
+          <button type="button" id="tab-netbanking" class="payment-tab-btn" onclick="selectPaymentMethod('netbanking')">🏦 Net Banking</button>
+        </div>
+
+        <!-- UPI Tab Content -->
+        <div id="pay-view-upi">
+          <div class="upi-qr-box">
+            <div style="margin-bottom:8px;font-size:12px;color:#475569;">Scan QR with any UPI App to Pay</div>
+            <div style="display:inline-block;background:#fff;padding:10px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+              <svg width="140" height="140" viewBox="0 0 140 140">
+                <rect width="140" height="140" fill="#ffffff"/>
+                <!-- Outer borders -->
+                <rect x="10" y="10" width="40" height="40" fill="none" stroke="#0f172a" stroke-width="6"/>
+                <rect x="20" y="20" width="20" height="20" fill="#0f172a"/>
+                <rect x="90" y="10" width="40" height="40" fill="none" stroke="#0f172a" stroke-width="6"/>
+                <rect x="100" y="20" width="20" height="20" fill="#0f172a"/>
+                <rect x="10" y="90" width="40" height="40" fill="none" stroke="#0f172a" stroke-width="6"/>
+                <rect x="20" y="100" width="20" height="20" fill="#0f172a"/>
+                <!-- QR Dots representation -->
+                <circle cx="70" cy="20" r="4" fill="#0f172a"/>
+                <circle cx="70" cy="40" r="4" fill="#0f172a"/>
+                <circle cx="60" cy="70" r="5" fill="#0f172a"/>
+                <circle cx="80" cy="70" r="5" fill="#0f172a"/>
+                <circle cx="70" cy="90" r="4" fill="#0f172a"/>
+                <circle cx="100" cy="70" r="4" fill="#0f172a"/>
+                <circle cx="120" cy="90" r="5" fill="#0f172a"/>
+                <circle cx="90" cy="110" r="4" fill="#0f172a"/>
+                <circle cx="110" cy="110" r="5" fill="#0f172a"/>
+                <circle cx="120" cy="120" r="4" fill="#0f172a"/>
+                <!-- Center Emblem -->
+                <rect x="58" y="58" width="24" height="24" rx="4" fill="#d97706"/>
+                <text x="70" y="74" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle">AJV</text>
+              </svg>
+            </div>
+            <div style="font-size:12px;color:#0f172a;font-weight:700;margin-top:8px;">UPI ID: <code>ajvcollege.fees@upi</code></div>
+            <div class="upi-apps">
+              <span class="upi-app-pill">GPay</span>
+              <span class="upi-app-pill">PhonePe</span>
+              <span class="upi-app-pill">Paytm</span>
+              <span class="upi-app-pill">BHIM</span>
+            </div>
+          </div>
+          <label style="font-size:12px;font-weight:600;margin-bottom:4px;display:block;">Or enter your VPA / UPI ID</label>
+          <input type="text" id="upiVpaInput" placeholder="e.g. yourname@okhdfcbank" value="student@okhdfcbank">
+        </div>
+
+        <!-- Card Tab Content -->
+        <div id="pay-view-card" style="display:none;">
+          <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Card Number</label>
+          <input type="text" id="cardNumInput" placeholder="4532 •••• •••• 8892" value="4532 9801 2234 8892" maxlength="19">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;">
+            <div>
+              <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Expiry Date</label>
+              <input type="text" id="cardExpInput" placeholder="MM/YY" value="08/28" maxlength="5">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">CVV</label>
+              <input type="password" id="cardCvvInput" placeholder="•••" value="782" maxlength="4">
+            </div>
+          </div>
+          <label style="font-size:12px;font-weight:600;display:block;margin-top:8px;margin-bottom:4px;">Cardholder Name</label>
+          <input type="text" id="cardHolderInput" placeholder="Name as printed on card" value="${esc(state.user ? state.user.fullName : 'STUDENT HOLDER')}">
+        </div>
+
+        <!-- Net Banking Tab Content -->
+        <div id="pay-view-netbanking" style="display:none;">
+          <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Select Your Bank</label>
+          <select id="bankSelectInput" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:6px;margin-bottom:12px;">
+            <option value="State Bank of India">State Bank of India (SBI)</option>
+            <option value="HDFC Bank">HDFC Bank</option>
+            <option value="ICICI Bank">ICICI Bank</option>
+            <option value="Canara Bank">Canara Bank</option>
+            <option value="Indian Bank">Indian Bank</option>
+            <option value="Axis Bank">Axis Bank</option>
+            <option value="Punjab National Bank">Punjab National Bank</option>
+            <option value="Bank of Baroda">Bank of Baroda</option>
+          </select>
+          <p class="muted" style="font-size:11px;">You will be redirected to the college's secure multi-bank gateway server to authenticate.</p>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:6px;justify-content:center;margin-top:14px;font-size:11px;color:#64748b;">
+          <span>🔒 256-Bit SSL Encrypted Banking Channel</span>
+          <span>•</span>
+          <span>Instant Institutional Clearance</span>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn secondary" onclick="modalDialog.close()">Cancel</button>
+        <button type="submit" class="btn gold">Confirm &amp; Authorize ₹${amount.toLocaleString('en-IN')} →</button>
+      </div>
+    </form>
+  `;
+  modalDialog.showModal();
+}
+
+async function executeFeePayment(e, feeId) {
+  e.preventDefault();
+  let details = "";
+  if (currentPaymentMethod === "upi") {
+    const vpa = document.getElementById("upiVpaInput")?.value || "student@upi";
+    details = "UPI ID: " + vpa;
+  } else if (currentPaymentMethod === "card") {
+    const last4 = (document.getElementById("cardNumInput")?.value || "8892").slice(-4);
+    details = "Card ending in " + last4;
+  } else {
+    const bank = document.getElementById("bankSelectInput")?.value || "State Bank of India";
+    details = "NetBanking: " + bank;
+  }
+
+  try {
+    const res = await api(`/api/student/fees/${feeId}/pay`, {
+      method: "POST",
+      body: {
+        paymentMode: currentPaymentMethod.toUpperCase(),
+        details: details
+      }
+    });
+
+    toast("Fee Payment Successful! Transaction: " + res.transactionId, true);
+    modalDialog.close();
+
+    // Refresh view and immediately open official stamped receipt
+    await openStudentFeesView();
+    setTimeout(() => {
+      openOfficialFeeReceipt(feeId);
+    }, 200);
+  } catch (err) {
+    toast(err.message, false);
+  }
+}
+
+function openPayAllModal(totalDue, pendingCount) {
+  currentPaymentMethod = "upi";
+  modalDialog.innerHTML = `
+    <div class="modal-header">
+      <div>
+        <div class="eyebrow" style="color:var(--gold);">BULK SETTLEMENT</div>
+        <h3 style="margin:2px 0;">Pay All Outstanding College Fees</h3>
+      </div>
+      <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
+    </div>
+
+    <form onsubmit="executePayAll(event)">
+      <div class="modal-body" style="padding-top:10px;">
+        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;margin-bottom:14px;">
+          <div style="font-size:12px;color:#92400e;">You are clearing all pending items:</div>
+          <b style="font-size:15px;color:#b45309;">${pendingCount} Fee Category Items</b>
+          <div style="font-size:22px;color:#b45309;font-weight:800;margin-top:4px;">Total: ₹${totalDue.toLocaleString('en-IN')}</div>
+        </div>
+
+        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px;">Select Payment Mode</label>
+        <select id="bulkPayMode" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:6px;margin-bottom:12px;">
+          <option value="UPI">UPI / Instant QR (Fastest)</option>
+          <option value="NETBANKING">Net Banking (SBI / HDFC / Canara / Indian Bank)</option>
+          <option value="CARD">Debit / Credit Card</option>
+        </select>
+
+        <p class="muted" style="font-size:12px;margin:0;">
+          Upon successful authorization, all individual fee receipts with official college stamps will be generated and made available under your account.
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn secondary" onclick="modalDialog.close()">Cancel</button>
+        <button type="submit" class="btn gold">Pay ₹${totalDue.toLocaleString('en-IN')} Now →</button>
+      </div>
+    </form>
+  `;
+  modalDialog.showModal();
+}
+
+async function executePayAll(e) {
+  e.preventDefault();
+  const mode = document.getElementById("bulkPayMode")?.value || "UPI";
+
+  try {
+    const res = await api("/api/student/fees/pay-all", {
+      method: "POST",
+      body: {
+        paymentMode: mode,
+        details: "Batch Settlement of all pending dues"
+      }
+    });
+
+    const count = res.paidCount || res.count || 'all';
+    const total = res.totalPaidAmount || res.totalPaid || '';
+    toast(`Successfully settled ${count} fee items ${total ? `(₹${total.toLocaleString('en-IN')})` : ''}!`, true);
+    modalDialog.close();
+    await openStudentFeesView();
+  } catch (err) {
+    toast(err.message, false);
+  }
+}
+
+async function openOfficialFeeReceipt(feeId) {
+  try {
+    const data = await api(`/api/fees/receipt/${feeId}`);
+    const receipt = data.receipt || data;
+
+    modalDialog.innerHTML = `
+      <div class="modal-header no-print">
+        <div>
+          <div class="eyebrow" style="color:var(--gold);">OFFICIAL INSTITUTIONAL RECORD</div>
+          <h3 style="margin:2px 0;">Stamped Fee Receipt</h3>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn gold" onclick="window.print()">🖨️ Print Receipt</button>
+          <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
+        </div>
+      </div>
+
+      <div class="modal-body" style="padding:16px;">
+        <div class="fee-receipt">
+          <div class="fee-receipt-head">
+            <img src="/assets/logo.svg" alt="AJV Emblem" onerror="this.src='https://via.placeholder.com/60?text=AJV'">
+            <h2>AJV COLLEGE OF ENGINEERING &amp; TECHNOLOGY</h2>
+            <p>Approved by AICTE, New Delhi • Affiliated to Anna University, Chennai • NAAC 'A+' Grade</p>
+            <p style="font-size:10px;color:#94a3b8;margin-top:2px;">Kavaraipettai, G.S.T Road, Chennai - 601 206, Tamil Nadu, India</p>
+            <div style="margin-top:10px;display:inline-block;padding:3px 14px;background:#f8fafc;border:1px solid var(--navy);border-radius:999px;font-weight:700;font-size:12px;color:var(--navy);letter-spacing:1px;">
+              OFFICIAL CASH &amp; ONLINE FEE RECEIPT
+            </div>
+          </div>
+
+          <div class="receipt-meta-grid">
+            <div>
+              <span>RECEIPT NUMBER</span>
+              <b>${esc(receipt.receiptNo)}</b>
+            </div>
+            <div>
+              <span>DATE &amp; TIME</span>
+              <b>${new Date(receipt.paidAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })}</b>
+            </div>
+            <div>
+              <span>TRANSACTION REFERENCE ID</span>
+              <b style="font-family:monospace;">${esc(receipt.transactionId)}</b>
+            </div>
+            <div>
+              <span>PAYMENT MODE &amp; CHANNEL</span>
+              <b>${esc(receipt.paymentMode)} (${esc(receipt.paymentDetails || 'Instant Settlement')})</b>
+            </div>
+            <div>
+              <span>STUDENT NAME</span>
+              <b>${esc(receipt.studentName)}</b>
+            </div>
+            <div>
+              <span>ROLL / REGISTRATION NUMBER</span>
+              <b style="font-family:monospace;">${esc(receipt.loginId)}</b>
+            </div>
+            <div>
+              <span>DEPARTMENT / BRANCH</span>
+              <b>${esc(receipt.department)}</b>
+            </div>
+            <div>
+              <span>ACADEMIC YEAR &amp; SEMESTER</span>
+              <b>${esc(receipt.year)} • Semester ${receipt.semester} (${receipt.academicYear})</b>
+            </div>
+          </div>
+
+          <table class="table" style="margin-bottom:12px;border:1px solid #e2e8f0;">
+            <thead>
+              <tr style="background:#f1f5f9;color:var(--navy);">
+                <th style="width:40px;text-align:center;">S.No</th>
+                <th>Fee Head / Particulars Description</th>
+                <th style="width:140px;text-align:right;">Amount (INR)</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${receipt.breakdown.map((b, idx) => `
+                <tr>
+                  <td style="text-align:center;color:#64748b;">${idx + 1}</td>
+                  <td><b>${esc(b.item)}</b></td>
+                  <td style="text-align:right;font-weight:600;">₹${b.amount.toLocaleString('en-IN')}</td>
+                </tr>
+              `).join("")}
+              <tr style="background:#f8fafc;font-size:14px;border-top:2px solid var(--navy);">
+                <td colspan="2" style="text-align:right;font-weight:700;color:var(--navy);">TOTAL AMOUNT PAID:</td>
+                <td style="text-align:right;font-weight:800;color:#059669;font-size:15px;">₹${receipt.amount.toLocaleString('en-IN')}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div style="background:#f8fafc;border-left:4px solid var(--navy);padding:8px 12px;font-size:12px;margin-bottom:20px;">
+            <span style="color:#64748b;font-weight:600;">AMOUNT IN WORDS:</span><br>
+            <b style="color:var(--navy);font-style:italic;">Rupees ${esc(receipt.amountInWords)} Only</b>
+          </div>
+
+          <div class="receipt-seal-bottom">
+            <div style="font-size:11px;color:#64748b;max-width:200px;">
+              <b>Verification Note:</b><br>
+              Computer-generated official receipt stamped by Finance Office. No external receipt required.<br>
+              <code style="font-size:10px;display:block;margin-top:4px;">SEAL-VERIFY: ${esc(receipt.institutionSealCode)}</code>
+            </div>
+
+            <!-- Authentic Circular Institutional Seal Badge -->
+            <div style="text-align:center;">
+              <svg width="90" height="90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="46" fill="none" stroke="#b91c1c" stroke-width="2.5" stroke-dasharray="3,2"/>
+                <circle cx="50" cy="50" r="41" fill="none" stroke="#b91c1c" stroke-width="1.5"/>
+                <path id="receiptSealPath" fill="none" d="M 50,50 m -35,0 a 35,35 0 1,1 70,0 a 35,35 0 1,1 -70,0"/>
+                <text font-size="7.5" font-weight="bold" fill="#b91c1c" letter-spacing="1.2">
+                  <textPath href="#receiptSealPath" startOffset="50%" text-anchor="middle">
+                    AJV COLLEGE OF ENGG &amp; TECH • CHENNAI
+                  </textPath>
+                </text>
+                <circle cx="50" cy="50" r="24" fill="#fef2f2" stroke="#b91c1c" stroke-width="1"/>
+                <text x="50" y="44" font-size="6" font-weight="900" fill="#b91c1c" text-anchor="middle">OFFICIAL</text>
+                <text x="50" y="52" font-size="6.5" font-weight="900" fill="#b91c1c" text-anchor="middle">SEAL</text>
+                <text x="50" y="60" font-size="5" font-weight="bold" fill="#991b1b" text-anchor="middle">ACCOUNTS</text>
+              </svg>
+              <div style="font-size:10px;font-weight:700;color:#b91c1c;margin-top:2px;">OFFICIALLY STAMPED</div>
+            </div>
+
+            <div class="receipt-sig-line">
+              <b>Accounts Officer / Dean Finance</b><br>
+              AJV College of Engg &amp; Tech
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer no-print">
+        <button type="button" class="btn secondary" onclick="modalDialog.close()">Close</button>
+        <button type="button" class="btn gold" onclick="window.print()">🖨️ Print Official Receipt</button>
+      </div>
+    `;
+
+    modalDialog.showModal();
+  } catch (err) {
+    toast(err.message, false);
+  }
+}
+
+let cachedAdminFeesSummary = null;
+let adminFeeDeptFilter = "all";
+let adminFeeYearFilter = "all";
+let adminFeeStatusFilter = "all";
+let adminFeeSearchQuery = "";
+
+async function openAdminFeesOverview() {
+  try {
+    const data = await api("/api/admin/fees/summary");
+    cachedAdminFeesSummary = data;
+    renderAdminFeesOverview();
+  } catch (err) {
+    toast(err.message, false);
+  }
+}
+
+function renderAdminFeesOverview() {
+  if (!cachedAdminFeesSummary) return;
+  const { metrics, studentsFees } = cachedAdminFeesSummary;
+
+  const filteredStudents = studentsFees.filter(item => {
+    if (adminFeeDeptFilter !== "all" && item.student.department !== adminFeeDeptFilter) return false;
+    if (adminFeeYearFilter !== "all" && item.student.year !== adminFeeYearFilter) return false;
+    if (adminFeeStatusFilter === "due" && item.summary.totalDue === 0) return false;
+    if (adminFeeStatusFilter === "cleared" && item.summary.totalDue > 0) return false;
+    if (adminFeeSearchQuery) {
+      const q = adminFeeSearchQuery.toLowerCase();
+      const match = item.student.fullName.toLowerCase().includes(q) || item.student.loginId.toLowerCase().includes(q);
+      if (!match) return false;
+    }
+    return true;
+  });
+
+  const completionRate = metrics.totalAssessed > 0 ? ((metrics.totalCollected / metrics.totalAssessed) * 100).toFixed(1) : "0";
+
+  app.innerHTML = `
+    <div class="dashboard">
+      <div class="dash-head">
+        <div>
+          <div class="eyebrow">INSTITUTION FINANCE &amp; ACCOUNTS</div>
+          <h1>College Fee Collections Overview 💳</h1>
+          <p class="muted">Monitoring all fee categories: Tuition, Exams, Hostel, Transport, Caution Deposits, &amp; Placement.</p>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <button class="btn secondary" onclick="showPage('dashboard')">← Back to Dashboard</button>
+          <button class="btn gold" onclick="openAdminFeesOverview()">🔄 Refresh Ledger</button>
+        </div>
+      </div>
+
+      <!-- Financial Metrics -->
+      <div class="stats" style="margin-top:20px;">
+        <div class="stat">
+          <span class="label">Total Assessed Fees</span>
+          <b style="font-size:22px;color:var(--navy);">₹${metrics.totalAssessed.toLocaleString('en-IN')}</b>
+          <small>Across ${metrics.totalStudents} enrolled students</small>
+        </div>
+        <div class="stat">
+          <span class="label">Total Collections Realized</span>
+          <b style="font-size:22px;color:#059669;">₹${metrics.totalCollected.toLocaleString('en-IN')}</b>
+          <small>Settled in college treasury</small>
+        </div>
+        <div class="stat">
+          <span class="label">Total Outstanding Dues</span>
+          <b style="font-size:22px;color:#d97706;">₹${metrics.totalOutstanding.toLocaleString('en-IN')}</b>
+          <small>Pending student clearance</small>
+        </div>
+        <div class="stat">
+          <span class="label">Collection Recovery Rate</span>
+          <b style="font-size:22px;color:var(--blue);">${completionRate}%</b>
+          <small>Overall compliance</small>
+        </div>
+      </div>
+
+      <!-- Student Filter & Search Bar -->
+      <div class="card" style="margin-top:20px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+          <div>
+            <h3 style="margin:0;">Student Fee Ledgers (${filteredStudents.length} Students)</h3>
+            <p class="muted" style="margin:2px 0 0;font-size:12px;">Inspect fee structure, pending dues, or stamped receipts for each student.</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <input type="text" placeholder="Search name or ID..." value="${esc(adminFeeSearchQuery)}" 
+                   oninput="adminFeeSearchQuery=this.value;renderAdminFeesOverview()" style="width:180px;padding:6px 10px;font-size:12px;">
+            <select onchange="adminFeeDeptFilter=this.value;renderAdminFeesOverview()" style="padding:6px 10px;font-size:12px;">
+              <option value="all" ${adminFeeDeptFilter === 'all' ? 'selected' : ''}>All Departments</option>
+              <option value="CSE" ${adminFeeDeptFilter === 'CSE' ? 'selected' : ''}>CSE</option>
+              <option value="ECE" ${adminFeeDeptFilter === 'ECE' ? 'selected' : ''}>ECE</option>
+              <option value="MECH" ${adminFeeDeptFilter === 'MECH' ? 'selected' : ''}>MECH</option>
+              <option value="CIVIL" ${adminFeeDeptFilter === 'CIVIL' ? 'selected' : ''}>CIVIL</option>
+            </select>
+            <select onchange="adminFeeYearFilter=this.value;renderAdminFeesOverview()" style="padding:6px 10px;font-size:12px;">
+              <option value="all" ${adminFeeYearFilter === 'all' ? 'selected' : ''}>All Years</option>
+              <option value="I Year" ${adminFeeYearFilter === 'I Year' ? 'selected' : ''}>I Year</option>
+              <option value="II Year" ${adminFeeYearFilter === 'II Year' ? 'selected' : ''}>II Year</option>
+              <option value="III Year" ${adminFeeYearFilter === 'III Year' ? 'selected' : ''}>III Year</option>
+              <option value="IV Year" ${adminFeeYearFilter === 'IV Year' ? 'selected' : ''}>IV Year</option>
+            </select>
+            <select onchange="adminFeeStatusFilter=this.value;renderAdminFeesOverview()" style="padding:6px 10px;font-size:12px;">
+              <option value="all" ${adminFeeStatusFilter === 'all' ? 'selected' : ''}>All Status</option>
+              <option value="due" ${adminFeeStatusFilter === 'due' ? 'selected' : ''}>With Pending Dues</option>
+              <option value="cleared" ${adminFeeStatusFilter === 'cleared' ? 'selected' : ''}>Fully Cleared</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="overflow-x:auto;">
+          <table class="table">
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Dept / Year</th>
+                <th>Total Assessed</th>
+                <th>Paid to Date</th>
+                <th>Outstanding</th>
+                <th>Status</th>
+                <th style="text-align:right;">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filteredStudents.length === 0 ? `
+                <tr><td colspan="7" style="text-align:center;padding:24px;color:#64748b;">No student records found matching the filter.</td></tr>
+              ` : filteredStudents.map(item => `
+                <tr>
+                  <td>
+                    <b>${esc(item.student.fullName)}</b><br>
+                    <code style="font-size:11px;">${esc(item.student.loginId)}</code>
+                  </td>
+                  <td>${esc(item.student.department)} • ${esc(item.student.year)}</td>
+                  <td>₹${item.summary.totalAssessed.toLocaleString('en-IN')}</td>
+                  <td style="color:#059669;font-weight:600;">₹${item.summary.totalPaid.toLocaleString('en-IN')}</td>
+                  <td style="color:${item.summary.totalDue > 0 ? '#d97706' : '#059669'};font-weight:700;">
+                    ₹${item.summary.totalDue.toLocaleString('en-IN')}
+                  </td>
+                  <td>
+                    ${item.summary.totalDue === 0 ? `
+                      <span class="fee-badge paid">✓ Fully Cleared</span>
+                    ` : `
+                      <span class="fee-badge due">⏳ ${item.summary.pendingCount} Pending</span>
+                    `}
+                  </td>
+                  <td style="text-align:right;">
+                    <button class="btn mini secondary" onclick="viewStudentFeeBreakdown('${item.student.id}')">View Breakdown</button>
+                  </td>
+                </tr>
+              `).join("")}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function viewStudentFeeBreakdown(studentId) {
+  const item = cachedAdminFeesSummary?.studentsFees.find(s => s.student.id === studentId);
+  if (!item) return;
+
+  modalDialog.innerHTML = `
+    <div class="modal-header">
+      <div>
+        <div class="eyebrow" style="color:var(--gold);">FEE LEDGER DETAILS</div>
+        <h3 style="margin:2px 0;">${esc(item.student.fullName)} (${esc(item.student.loginId)})</h3>
+      </div>
+      <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
+    </div>
+
+    <div class="modal-body" style="padding:16px;">
+      <div style="display:flex;justify-content:space-between;background:#f8fafc;padding:12px;border-radius:6px;margin-bottom:14px;font-size:13px;">
+        <div><b>Department:</b> ${esc(item.student.department)} (${esc(item.student.year)})</div>
+        <div><b>Total Due:</b> <span style="color:#d97706;font-weight:700;">₹${item.summary.totalDue.toLocaleString('en-IN')}</span></div>
+        <div><b>Total Paid:</b> <span style="color:#059669;font-weight:700;">₹${item.summary.totalPaid.toLocaleString('en-IN')}</span></div>
+      </div>
+
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Fee Title</th>
+            <th>Sem</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${item.fees.map(f => `
+            <tr>
+              <td>
+                <b>${esc(f.title)}</b><br>
+                <span class="muted" style="font-size:11px;">${esc(f.description)}</span>
+              </td>
+              <td>Sem ${f.semester}</td>
+              <td><b>₹${f.amount.toLocaleString('en-IN')}</b></td>
+              <td>
+                <span class="fee-badge ${f.status === 'PAID' ? 'paid' : 'due'}">
+                  ${f.status === 'PAID' ? '✓ Paid' : '⏳ Due'}
+                </span>
+              </td>
+              <td>
+                ${f.status === 'PAID' ? `
+                  <button class="btn mini gold" onclick="openOfficialFeeReceipt('${f.id}')">Receipt</button>
+                ` : `
+                  <span class="muted" style="font-size:11px;">Due ${new Date(f.dueDate).toLocaleDateString('en-IN')}</span>
+                `}
+              </td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="modal-footer">
+      <button type="button" class="btn secondary" onclick="modalDialog.close()">Close</button>
+    </div>
+  `;
+  modalDialog.showModal();
+}
+
+// -------------------------------------------------------------
 // Router
 // -------------------------------------------------------------
 
@@ -2979,6 +3822,11 @@ function showPage(p) {
   else if (p === "login") login();
   else if (p === "register") register();
   else if (p === "profile") profile();
+  else if (p === "fees" || p === "payment") {
+    if (!state.user) login();
+    else if (state.user.role === "student") openStudentFeesView();
+    else openAdminFeesOverview();
+  }
   else if (p === "results" || p === "marksheets") {
     if (!state.user) login();
     else if (state.user.role === "admin") openPublishResultsCenter();
@@ -3007,4 +3855,5 @@ layoutNav();
 loadConfig().then(() => {
   showPage(state.user ? "dashboard" : "home");
 });
+
 

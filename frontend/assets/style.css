@@ -533,6 +533,23 @@ dialog::backdrop {
   background: rgba(255,255,255,0.2);
   color: #cbd5e1;
 }
+.sem-btn.locked {
+  opacity: 0.65;
+  background: #f8fafc;
+  border-style: dashed;
+}
+.sem-btn.locked:hover {
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+.tag-locked {
+  background: #f1f5f9;
+  color: #94a3b8;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+}
 
 /* Admin Results Publication Executive Grid & Enhancements */
 .admin-pub-grid {
@@ -743,4 +760,170 @@ footer span { opacity: 0.75; }
   border: 1px solid #bbf7d0;
   border-radius: 8px;
   margin-bottom: 16px;
+}
+
+/* College Fee Payment & Official Receipt Styles */
+.fee-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+.fee-item-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.03);
+  transition: transform 0.15s, border-color 0.15s;
+}
+.fee-item-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--blue);
+}
+.fee-item-card.is-paid {
+  border-top: 4px solid #10b981;
+}
+.fee-item-card.is-due {
+  border-top: 4px solid #f59e0b;
+}
+
+.fee-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+.fee-badge.paid {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+.fee-badge.due {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+/* Payment Gateway Modal */
+.payment-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 16px 0;
+}
+.payment-tab-btn {
+  padding: 10px 8px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s;
+}
+.payment-tab-btn.active {
+  background: var(--navy);
+  color: #fff;
+  border-color: var(--navy);
+}
+
+.upi-qr-box {
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 8px;
+  padding: 16px;
+  text-align: center;
+  margin-bottom: 14px;
+}
+.upi-apps {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+.upi-app-pill {
+  padding: 4px 10px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #334155;
+}
+
+/* Official Fee Receipt Stamped Certificate */
+.fee-receipt {
+  border: 3px double var(--navy);
+  padding: 24px;
+  background: #fff;
+  position: relative;
+  border-radius: 6px;
+}
+.fee-receipt-head {
+  text-align: center;
+  border-bottom: 2px solid var(--navy);
+  padding-bottom: 14px;
+  margin-bottom: 16px;
+}
+.fee-receipt-head img {
+  width: 58px;
+  height: 58px;
+  margin-bottom: 6px;
+}
+.fee-receipt-head h2 {
+  font-size: 18px;
+  margin: 0;
+  letter-spacing: 0.5px;
+  color: var(--navy);
+}
+.fee-receipt-head p {
+  font-size: 11px;
+  color: #64748b;
+  margin: 2px 0 0;
+}
+.receipt-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px 16px;
+  font-size: 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+.receipt-meta-grid div span {
+  color: #64748b;
+  font-size: 11px;
+  display: block;
+}
+.receipt-meta-grid div b {
+  color: var(--navy);
+  font-size: 13px;
+}
+.receipt-seal-bottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px dashed #cbd5e1;
+}
+.receipt-sig-line {
+  text-align: center;
+  width: 160px;
+  font-size: 11px;
+  color: #475569;
+  border-top: 1px solid #94a3b8;
+  padding-top: 4px;
+  margin-top: 36px;
 }

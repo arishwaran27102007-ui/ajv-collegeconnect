@@ -1061,6 +1061,394 @@ async function deleteAnnouncement(id) {
   return jsonDb.announcements.length < initLen;
 }
 
+// -------------------------------------------------------------
+// College Fee Management System (All Fee Categories & Receipts)
+// -------------------------------------------------------------
+
+function numToWords(n) {
+  const a = ['', 'One ', 'Two ', 'Three ', 'Four ', 'Five ', 'Six ', 'Seven ', 'Eight ', 'Nine ', 'Ten ', 'Eleven ', 'Twelve ', 'Thirteen ', 'Fourteen ', 'Fifteen ', 'Sixteen ', 'Seventeen ', 'Eighteen ', 'Nineteen '];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  function inWords(num) {
+    if ((num = num.toString()).length > 9) return 'overflow';
+    const n = ('000000000' + num).substr(-9).match(/^(\d{2})(\d{2})(\d{2})(\d{1})(\d{2})$/);
+    if (!n) return '';
+    let str = '';
+    str += (n[1] != 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + 'Crore ' : '';
+    str += (n[2] != 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + 'Lakh ' : '';
+    str += (n[3] != 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) + 'Thousand ' : '';
+    str += (n[4] != 0) ? (a[Number(n[4])] || b[n[4][0]] + ' ' + a[n[4][1]]) + 'Hundred ' : '';
+    str += (n[5] != 0) ? ((str != '') ? 'and ' : '') + (a[Number(n[5])] || b[n[5][0]] + ' ' + a[n[5][1]]) : '';
+    return str;
+  }
+  const words = inWords(Math.round(n)).trim();
+  return words ? `Rupees ${words} Only` : 'Rupees Zero Only';
+}
+
+function initStudentFees(student) {
+  if (!jsonDb.fees) jsonDb.fees = [];
+  const existing = jsonDb.fees.filter(f => f.studentId === student.id);
+  if (existing.length > 0) return existing;
+
+  const templates = [
+    {
+      category: "Tuition Fee",
+      title: "Semester 1 Tuition & Academic Instructional Fee",
+      semester: 1,
+      academicYear: "2025-2026",
+      amount: 45000,
+      paidAmount: 45000,
+      status: "PAID",
+      dueDate: "2025-08-30",
+      paidAt: "2025-08-20T10:30:00.000Z",
+      paymentMethod: "UPI (Google Pay)",
+      transactionId: `AJV-TXN-${student.id}-001`,
+      receiptNo: `AJV/FEE/2025/${String(student.id).padStart(3, '0')}1`
+    },
+    {
+      category: "Tuition Fee",
+      title: "Semester 2 Tuition & Academic Instructional Fee",
+      semester: 2,
+      academicYear: "2025-2026",
+      amount: 45000,
+      paidAmount: student.id === 6 ? 45000 : 0,
+      status: student.id === 6 ? "PAID" : "DUE",
+      dueDate: "2026-02-15",
+      paidAt: student.id === 6 ? "2026-02-05T11:20:00.000Z" : null,
+      paymentMethod: student.id === 6 ? "Net Banking (SBI)" : null,
+      transactionId: student.id === 6 ? `AJV-TXN-${student.id}-002` : null,
+      receiptNo: student.id === 6 ? `AJV/FEE/2026/${String(student.id).padStart(3, '0')}2` : null
+    },
+    {
+      category: "Examination Fee",
+      title: "Semester 1 Autonomous Examination & Grade Card Fee",
+      semester: 1,
+      academicYear: "2025-2026",
+      amount: 2200,
+      paidAmount: 2200,
+      status: "PAID",
+      dueDate: "2025-10-15",
+      paidAt: "2025-10-10T14:45:00.000Z",
+      paymentMethod: "UPI (PhonePe)",
+      transactionId: `AJV-TXN-${student.id}-003`,
+      receiptNo: `AJV/FEE/2025/${String(student.id).padStart(3, '0')}3`
+    },
+    {
+      category: "Examination Fee",
+      title: "Semester 2 Autonomous Examination & Marksheet Fee",
+      semester: 2,
+      academicYear: "2025-2026",
+      amount: 2200,
+      paidAmount: 0,
+      status: "DUE",
+      dueDate: "2026-03-25",
+      paidAt: null,
+      paymentMethod: null,
+      transactionId: null,
+      receiptNo: null
+    },
+    {
+      category: "Hostel & Mess Fee",
+      title: "Hostel Accommodation, Dining & Facility Charges (Term II)",
+      semester: 2,
+      academicYear: "2025-2026",
+      amount: 38000,
+      paidAmount: 0,
+      status: "DUE",
+      dueDate: "2026-03-10",
+      paidAt: null,
+      paymentMethod: null,
+      transactionId: null,
+      receiptNo: null
+    },
+    {
+      category: "Campus Transport / Bus Fee",
+      title: "Annual College Bus Transportation Route Pass",
+      semester: 1,
+      academicYear: "2025-2026",
+      amount: 14000,
+      paidAmount: 14000,
+      status: "PAID",
+      dueDate: "2025-08-30",
+      paidAt: "2025-08-22T09:15:00.000Z",
+      paymentMethod: "UPI (Paytm)",
+      transactionId: `AJV-TXN-${student.id}-004`,
+      receiptNo: `AJV/FEE/2025/${String(student.id).padStart(3, '0')}4`
+    },
+    {
+      category: "Laboratory & Caution Deposit",
+      title: "Institutional Research Lab & Library Caution Deposit",
+      semester: 1,
+      academicYear: "2025-2026",
+      amount: 5000,
+      paidAmount: 5000,
+      status: "PAID",
+      dueDate: "2025-08-20",
+      paidAt: "2025-08-18T16:00:00.000Z",
+      paymentMethod: "Debit Card (HDFC)",
+      transactionId: `AJV-TXN-${student.id}-005`,
+      receiptNo: `AJV/FEE/2025/${String(student.id).padStart(3, '0')}5`
+    },
+    {
+      category: "Placement & Skill Training",
+      title: "Placement Readiness, Coding Bootcamp & Skill Development",
+      semester: 2,
+      academicYear: "2025-2026",
+      amount: 6500,
+      paidAmount: 0,
+      status: "DUE",
+      dueDate: "2026-04-15",
+      paidAt: null,
+      paymentMethod: null,
+      transactionId: null,
+      receiptNo: null
+    }
+  ];
+
+  let nextId = jsonDb.fees.reduce((m, f) => Math.max(m, f.id || 0), 0) + 1;
+  const newRecords = templates.map(t => ({
+    id: nextId++,
+    studentId: student.id,
+    ...t
+  }));
+
+  jsonDb.fees.push(...newRecords);
+  saveJsonDb();
+  return newRecords;
+}
+
+async function getStudentFees(studentId) {
+  const sId = Number(studentId);
+  const student = await findUserById(sId);
+  if (!student) return null;
+
+  if (!jsonDb.fees) jsonDb.fees = [];
+  let studentFees = jsonDb.fees.filter(f => f.studentId === sId);
+  if (!studentFees.length) {
+    studentFees = initStudentFees(student);
+  }
+
+  const totalFee = studentFees.reduce((acc, f) => acc + Number(f.amount || 0), 0);
+  const totalPaid = studentFees.reduce((acc, f) => acc + Number(f.paidAmount || 0), 0);
+  const totalDue = totalFee - totalPaid;
+  const pendingCount = studentFees.filter(f => f.status === "DUE").length;
+  const paidCount = studentFees.filter(f => f.status === "PAID").length;
+
+  return {
+    student: {
+      id: student.id,
+      fullName: student.fullName,
+      loginId: student.loginId,
+      department: student.department,
+      year: student.year,
+      section: student.section || "A",
+      email: student.email,
+      phone: student.phone
+    },
+    summary: {
+      totalFee,
+      totalPaid,
+      totalDue,
+      pendingCount,
+      paidCount,
+      isClear: totalDue === 0
+    },
+    fees: studentFees
+  };
+}
+
+async function payStudentFee(studentId, feeId, paymentData = {}) {
+  const sId = Number(studentId);
+  const fId = Number(feeId);
+  const student = await findUserById(sId);
+  if (!student) throw Error("Student record not found.");
+
+  if (!jsonDb.fees) jsonDb.fees = [];
+  const fee = jsonDb.fees.find(f => f.id === fId && f.studentId === sId);
+  if (!fee) throw Error("Fee item not found.");
+  if (fee.status === "PAID") throw Error("This fee has already been paid.");
+
+  const now = new Date();
+  const txnId = `AJV-TXN-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+  const receiptNo = `AJV/FEE/${now.getFullYear()}/${String(sId).padStart(4, '0')}-${String(fId).padStart(2, '0')}`;
+
+  fee.paidAmount = fee.amount;
+  fee.status = "PAID";
+  fee.paidAt = now.toISOString();
+  fee.paymentMethod = paymentData.paymentMethod || "UPI (Instant Online Payment)";
+  fee.transactionId = txnId;
+  fee.receiptNo = receiptNo;
+  fee.payerVpa = paymentData.upiId || paymentData.cardLast4 || "Direct Online Portal";
+
+  saveJsonDb();
+
+  return {
+    success: true,
+    fee,
+    receiptNo,
+    transactionId: txnId,
+    message: `Payment of ₹${fee.amount.toLocaleString('en-IN')} for '${fee.title}' successful!`
+  };
+}
+
+async function payAllStudentFees(studentId, paymentData = {}) {
+  const sId = Number(studentId);
+  const student = await findUserById(sId);
+  if (!student) throw Error("Student record not found.");
+
+  if (!jsonDb.fees) jsonDb.fees = [];
+  const dueFees = jsonDb.fees.filter(f => f.studentId === sId && f.status === "DUE");
+  if (!dueFees.length) throw Error("No outstanding fee dues found.");
+
+  const now = new Date();
+  const batchTxnId = `AJV-BATCH-${Date.now().toString(36).toUpperCase()}`;
+  let totalPaid = 0;
+
+  for (const fee of dueFees) {
+    const fId = fee.id;
+    fee.paidAmount = fee.amount;
+    fee.status = "PAID";
+    fee.paidAt = now.toISOString();
+    fee.paymentMethod = paymentData.paymentMethod || "UPI (Consolidated)";
+    fee.transactionId = `${batchTxnId}-${fee.id}`;
+    fee.receiptNo = `AJV/FEE/${now.getFullYear()}/${String(sId).padStart(4, '0')}-${String(fId).padStart(2, '0')}`;
+    totalPaid += fee.amount;
+  }
+
+  saveJsonDb();
+
+  return {
+    success: true,
+    count: dueFees.length,
+    totalPaid,
+    transactionId: batchTxnId,
+    message: `Consolidated payment of ₹${totalPaid.toLocaleString('en-IN')} across ${dueFees.length} fees completed successfully!`
+  };
+}
+
+async function getFeeReceipt(feeId) {
+  const fId = Number(feeId);
+  if (!jsonDb.fees) jsonDb.fees = [];
+  const fee = jsonDb.fees.find(f => f.id === fId);
+  if (!fee) return null;
+  if (fee.status !== "PAID") return null;
+
+  const student = await findUserById(fee.studentId);
+  if (!student) return null;
+
+  return {
+    receiptNo: fee.receiptNo || `AJV/FEE/2026/${String(fee.id).padStart(4, '0')}`,
+    transactionId: fee.transactionId,
+    paidAt: fee.paidAt,
+    dateOfPayment: new Date(fee.paidAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }),
+    paymentMethod: fee.paymentMethod || "Online Transfer",
+    paymentMode: fee.paymentMode || fee.paymentMethod || "Online Transfer",
+    paymentDetails: fee.paymentDetails || "",
+    amount: fee.amount,
+    amountInWords: numToWords(fee.amount),
+    feeTitle: fee.title,
+    title: fee.title,
+    category: fee.category,
+    semester: fee.semester,
+    academicYear: fee.academicYear || "2025-2026",
+    breakdown: (fee.breakdown && fee.breakdown.length > 0) ? fee.breakdown : [{ item: fee.title, amount: fee.amount }],
+    institutionSealCode: fee.institutionSealCode || "AJV-SEAL-VERIFY-2026",
+    studentName: student.fullName,
+    loginId: student.loginId,
+    department: student.department,
+    year: student.year,
+    student: {
+      fullName: student.fullName,
+      loginId: student.loginId,
+      registerNo: student.registerNo || student.loginId,
+      department: student.department,
+      year: student.year,
+      section: student.section || "A",
+      parentName: student.parentName,
+      phone: student.phone
+    },
+    institution: {
+      name: "AJV COLLEGE OF ENGINEERING",
+      subtitle: "Autonomous Institution • Approved by AICTE • Affiliated to Anna University",
+      office: "OFFICE OF ACADEMIC AFFAIRS & ACCOUNTS SECTION",
+      sealCode: fee.institutionSealCode || "AJV-SEAL-VERIFY-2026",
+      signatory: "Accounts Officer / Cashier"
+    }
+  };
+}
+
+async function getAllFeesSummary() {
+  if (!jsonDb.fees) jsonDb.fees = [];
+  const students = (await listStudents()).filter(s => s.status === "active");
+  for (const s of students) {
+    if (!jsonDb.fees.some(f => f.studentId === s.id)) {
+      initStudentFees(s);
+    }
+  }
+
+  const all = jsonDb.fees;
+  const totalAssessed = all.reduce((sum, f) => sum + Number(f.amount || 0), 0);
+  const totalCollected = all.reduce((sum, f) => sum + Number(f.paidAmount || 0), 0);
+  const totalOutstanding = totalAssessed - totalCollected;
+
+  const categories = {};
+  for (const f of all) {
+    const cat = f.category || "Other";
+    if (!categories[cat]) categories[cat] = { assessed: 0, collected: 0, pending: 0, count: 0 };
+    categories[cat].assessed += f.amount;
+    categories[cat].collected += f.paidAmount;
+    categories[cat].pending += (f.amount - f.paidAmount);
+    categories[cat].count++;
+  }
+
+  const studentsFees = [];
+  for (const s of students) {
+    const sFees = all.filter(f => f.studentId === s.id);
+    const sAssessed = sFees.reduce((sum, f) => sum + Number(f.amount || 0), 0);
+    const sPaid = sFees.reduce((sum, f) => sum + Number(f.paidAmount || 0), 0);
+    const sDue = sAssessed - sPaid;
+    const sPending = sFees.filter(f => f.status === "DUE").length;
+    studentsFees.push({
+      student: {
+        id: s.id,
+        fullName: s.fullName,
+        loginId: s.loginId,
+        department: s.department,
+        year: s.year
+      },
+      summary: {
+        totalAssessed: sAssessed,
+        totalPaid: sPaid,
+        totalDue: sDue,
+        pendingCount: sPending
+      },
+      fees: sFees
+    });
+  }
+
+  const metrics = {
+    totalAssessed,
+    totalCollected,
+    totalOutstanding,
+    totalStudents: students.length,
+    totalRecords: all.length,
+    paidCount: all.filter(f => f.status === "PAID").length,
+    dueCount: all.filter(f => f.status === "DUE").length
+  };
+
+  return {
+    metrics,
+    totalAssessed,
+    totalCollected,
+    totalOutstanding,
+    totalRecords: all.length,
+    paidCount: metrics.paidCount,
+    dueCount: metrics.dueCount,
+    categories,
+    studentsFees
+  };
+}
+
 module.exports = {
   initDb,
   getHealth,
@@ -1091,5 +1479,10 @@ module.exports = {
   getSemesterResult,
   getAllSemestersAnalytics,
   getSemesterBroadsheet,
+  getStudentFees,
+  payStudentFee,
+  payAllStudentFees,
+  getFeeReceipt,
+  getAllFeesSummary,
   getDbMode: () => dbMode
 };

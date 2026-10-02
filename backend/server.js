@@ -580,12 +580,34 @@ app.get("/api/results/semester/:semester", auth, async (req, res) => {
       return res.status(404).json({ message: "Student record not found." });
     }
 
+    // Restriction 1: Student can only view results of their currently studying year or below
+    const yearMaxSem = {
+      "I Year": 2,
+      "II Year": 4,
+      "III Year": 6,
+      "IV Year": 8
+    };
+    const maxSem = yearMaxSem[student.year] || 2;
+    if (req.user.role === "student" && semester > maxSem) {
+      return res.json({
+        isPublished: false,
+        isEligible: false,
+        semester,
+        studentName: student.fullName,
+        registerNo: student.registerNo,
+        studentYear: student.year,
+        maxEligibleSemester: maxSem,
+        message: `Semester ${semester} belongs to a higher academic year. As a ${student.year} student, your enrolled curriculum covers Semesters 1 to ${maxSem}. Results for Semester ${semester} are restricted to students studying in that academic year.`
+      });
+    }
+
     const isPublished = await db.isSemesterPublished(semester);
 
     // If student is requesting and semester is not published by admin, deny display
     if (req.user.role === "student" && !isPublished) {
       return res.json({
         isPublished: false,
+        isEligible: true,
         semester,
         studentName: student.fullName,
         registerNo: student.registerNo,
@@ -596,10 +618,94 @@ app.get("/api/results/semester/:semester", auth, async (req, res) => {
     const result = await db.getSemesterResult(studentId, semester);
     if (!result) return res.status(404).json({ message: "Result data unavailable." });
 
+    result.isEligible = true;
     res.json(result);
   } catch (e) {
     console.error("[Semester Result Error]:", e);
     res.status(500).json({ message: "Failed to retrieve semester result." });
+  }
+});
+
+// -------------------------------------------------------------
+// College Fee Payment & Official Receipts Endpoints
+// -------------------------------------------------------------
+
+// Get all fees & dues summary for a student
+app.get("/api/student/fees", auth, async (req, res) => {
+  let targetId = req.user.id;
+  if ((req.user.role === "staff" || req.user.role === "admin") && req.query.studentId) {
+    targetId = Number(req.query.studentId);
+  }
+
+  try {
+    const feeData = await db.getStudentFees(targetId);
+    if (!feeData) return res.status(404).json({ message: "Student fee profile not found." });
+    res.json(feeData);
+  } catch (err) {
+    console.error("[Fees Fetch Error]:", err);
+    res.status(500).json({ message: "Failed to load fee information." });
+  }
+});
+
+// Pay single fee item (UPI, NetBanking, Card)
+app.post("/api/student/fees/:id/pay", auth, async (req, res) => {
+  let targetId = req.user.id;
+  if ((req.user.role === "staff" || req.user.role === "admin") && req.body.studentId) {
+    targetId = Number(req.body.studentId);
+  }
+
+  const feeId = Number(req.params.id);
+  try {
+    const paymentResult = await db.payStudentFee(targetId, feeId, req.body);
+    res.json(paymentResult);
+  } catch (err) {
+    console.error("[Fee Payment Error]:", err);
+    res.status(400).json({ message: err.message || "Payment transaction failed." });
+  }
+});
+
+// Pay all outstanding dues in one consolidated transaction
+app.post("/api/student/fees/pay-all", auth, async (req, res) => {
+  let targetId = req.user.id;
+  if ((req.user.role === "staff" || req.user.role === "admin") && req.body.studentId) {
+    targetId = Number(req.body.studentId);
+  }
+
+  try {
+    const batchResult = await db.payAllStudentFees(targetId, req.body);
+    res.json(batchResult);
+  } catch (err) {
+    console.error("[Consolidated Fee Payment Error]:", err);
+    res.status(400).json({ message: err.message || "Consolidated payment failed." });
+  }
+});
+
+// Official Fee Payment Receipt with Institution Seal
+app.get("/api/fees/receipt/:feeId", auth, async (req, res) => {
+  try {
+    const receipt = await db.getFeeReceipt(req.params.feeId);
+    if (!receipt) return res.status(404).json({ message: "Official receipt not found or fee unpaid." });
+
+    // Ensure student only accesses their own receipt unless staff/admin
+    if (req.user.role === "student" && receipt.student.loginId !== req.user.loginId) {
+      return res.status(403).json({ message: "Unauthorized receipt access." });
+    }
+
+    res.json(receipt);
+  } catch (err) {
+    console.error("[Fee Receipt Error]:", err);
+    res.status(500).json({ message: "Failed to generate receipt." });
+  }
+});
+
+// Admin & Staff Fee Summary
+app.get("/api/admin/fees/summary", auth, role("admin", "staff"), async (req, res) => {
+  try {
+    const summary = await db.getAllFeesSummary();
+    res.json(summary);
+  } catch (err) {
+    console.error("[Fee Summary Error]:", err);
+    res.status(500).json({ message: "Failed to compile fee collections." });
   }
 });
 
