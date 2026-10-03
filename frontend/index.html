@@ -9,11 +9,26 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="AJV College">
+  <meta name="description" content="AJV CollegeConnect - The secure academic portal for AJV College of Engineering students and staff. View results, ID cards, hall tickets, fee payments, and attendance.">
+  <meta property="og:title" content="AJV College of Engineering | CollegeConnect">
+  <meta property="og:description" content="Secure academic portal for AJV College of Engineering students and staff.">
+  <meta property="og:image" content="/assets/college-logo.png">
+  <meta property="og:type" content="website">
   <link rel="manifest" href="/manifest.json">
   <link rel="apple-touch-icon" href="/icons/icon-192.png">
   <title>AJV College of Engineering | CollegeConnect</title>
   <link rel="icon" href="/assets/college-logo.png">
-  <link rel="stylesheet" href="/assets/style.css?v=20261002_allfeatures">
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <link rel="stylesheet" href="/assets/style.css?v=20261003_razorpay">
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "CollegeOrUniversity",
+    "name": "AJV College of Engineering",
+    "url": "https://ajv-collegeconnect.onrender.com",
+    "logo": "https://ajv-collegeconnect.onrender.com/assets/college-logo.png"
+  }
+  </script>
 </head>
 
 <body>
@@ -27,6 +42,7 @@
       </div>
     </div>
     <nav id="nav"></nav>
+    <button id="themeToggleBtn" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">🌙</button>
     <button id="installAppBtn" class="install-app-btn" type="button" hidden>📲 Install App</button>
   </header>
   <main id="app"></main>
@@ -38,8 +54,8 @@
     </div>
     <span>&copy; 2026 AJV CollegeConnect</span>
   </footer>
-  <script src="/assets/app.js?v=20261002_allfeatures"></script>
-  <script src="/assets/pwa.js?v=20261002_allfeatures"></script>
+  <script src="/assets/app.js?v=20261003_razorpay"></script>
+  <script src="/assets/pwa.js?v=20261003_razorpay"></script>
 </body>
 
 </html>

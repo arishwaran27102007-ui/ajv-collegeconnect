@@ -28,6 +28,9 @@ services:
       PORT: 5000
       JWT_SECRET: ajv-collegeconnect-production-secret
       DATABASE_URL: postgresql://postgres:postgrespassword@db:5432/ajv_college
+      ADMIN_IP: 10.43.120.56
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
     volumes:
       - ajv_data:/app/data
     depends_on:

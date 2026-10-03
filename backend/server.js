@@ -5,6 +5,16 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const path = require("path");
 const db = require("./db");
+const Razorpay = require("razorpay");
+const crypto = require("crypto");
+
+let razorpay = null;
+if (process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET) {
+  razorpay = new Razorpay({
+    key_id: process.env.RAZORPAY_KEY_ID,
+    key_secret: process.env.RAZORPAY_KEY_SECRET
+  });
+}
 
 const app = express();
 const PORT = Number(process.env.PORT || 5000);
@@ -15,6 +25,28 @@ app.set("trust proxy", true);
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
+
+// Basic Security Headers (Helmet-like)
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' https://checkout.razorpay.com; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.razorpay.com https://lumberjack.razorpay.com; frame-src https://api.razorpay.com;");
+  next();
+});
+
+// Basic Request Logging (Morgan-like)
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on("finish", () => {
+    const duration = Date.now() - start;
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`);
+  });
+  next();
+});
+
 app.use(express.static(FRONTEND, {
   setHeaders: (res, filePath) => {
     if (filePath.endsWith(".html") || filePath.endsWith(".js") || filePath.endsWith("sw.js")) {
@@ -44,35 +76,15 @@ function getClientIp(req) {
   return raw.replace(/^::ffff:/, "").trim();
 }
 
-// IP / Host Authorization for Admin Console (strictly restricted to authorized IP 10.43.120.56)
+// IP / Host Authorization for Admin Console (strictly restricted to authorized IP from .env)
 function isAuthorizedAdminIP(req) {
   const clientIp = getClientIp(req);
   const host = (req.headers.host || "").split(":")[0].trim();
-  const adminSecret = req.headers["x-admin-key"] || req.query.admin_key;
-  const claimedIp = req.headers["x-client-ip"] || req.query.ip;
+  const adminIp = process.env.ADMIN_IP || "10.43.120.56";
 
-  // 1. Authorized Admin Device token or secret passkey (from authorized device 10.43.120.56)
-  if (
-    adminSecret === "10.43.120.56" ||
-    claimedIp === "10.43.120.56" ||
-    adminSecret === "ajv-admin-secure-2026" ||
-    adminSecret === "Admin@123" ||
-    adminSecret === "ajv2026"
-  ) {
+  // STRICT network IP match
+  if (clientIp === adminIp || host === adminIp) {
     return true;
-  }
-
-  // 2. Direct network IP match for 10.43.120.56
-  if (clientIp === "10.43.120.56" || clientIp.startsWith("10.43.120.") || host === "10.43.120.56") {
-    return true;
-  }
-
-  // 3. Localhost ONLY if running strictly in offline local development (NEVER on Render or cloud)
-  const isCloudOrRender = Boolean(process.env.RENDER || host.includes("onrender.com"));
-  if (!isCloudOrRender) {
-    if (host === "localhost" || host === "127.0.0.1" || clientIp === "127.0.0.1" || clientIp === "::1" || clientIp === "localhost") {
-      return true;
-    }
   }
 
   return false;
@@ -144,15 +156,49 @@ app.get("/api/config", (req, res) => {
     departments,
     years,
     isAdminAllowed: isAuthorizedAdminIP(req),
-    clientIp: getClientIp(req)
+    clientIp: getClientIp(req),
+    razorpayKeyId: process.env.RAZORPAY_KEY_ID || null
   });
 });
 
-// -------------------------------------------------------------
-// Authentication
-// -------------------------------------------------------------
+// Simple in-memory rate limiting for login (max 10 attempts per 15 minutes per IP)
+const loginAttempts = new Map();
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+const MAX_LOGIN_ATTEMPTS = 10;
+
+function checkLoginRateLimit(req, res) {
+  const ip = getClientIp(req);
+  const now = Date.now();
+  const record = loginAttempts.get(ip);
+
+  if (record) {
+    // Clean expired entries
+    if (now - record.windowStart > LOGIN_WINDOW_MS) {
+      loginAttempts.set(ip, { count: 1, windowStart: now });
+      return true;
+    }
+    if (record.count >= MAX_LOGIN_ATTEMPTS) {
+      const retryAfterSec = Math.ceil((record.windowStart + LOGIN_WINDOW_MS - now) / 1000);
+      res.status(429).json({ message: `Too many login attempts. Please wait ${Math.ceil(retryAfterSec / 60)} minute(s) before trying again.` });
+      return false;
+    }
+    record.count++;
+  } else {
+    loginAttempts.set(ip, { count: 1, windowStart: now });
+  }
+  return true;
+}
+
+// Periodically clean stale entries (every 30 minutes)
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, record] of loginAttempts) {
+    if (now - record.windowStart > LOGIN_WINDOW_MS) loginAttempts.delete(ip);
+  }
+}, 30 * 60 * 1000);
 
 app.post("/api/auth/login", async (req, res) => {
+  if (!checkLoginRateLimit(req, res)) return;
   const loginId = clean(req.body.loginId);
   const password = String(req.body.password || "");
   const requestedRole = clean(req.body.role).toLowerCase();
@@ -164,7 +210,7 @@ app.post("/api/auth/login", async (req, res) => {
   // Admin IP Protection
   if (requestedRole === "admin" && !isAuthorizedAdminIP(req)) {
     return res.status(403).json({
-      message: "Admin login is strictly restricted to the authorized host (10.43.120.56)."
+      message: `Admin login is strictly restricted to the authorized host (${process.env.ADMIN_IP || "10.43.120.56"}).`
     });
   }
 
@@ -181,7 +227,8 @@ app.post("/api/auth/login", async (req, res) => {
     if (user.status === "rejected") {
       return res.status(403).json({ message: "Your registration was rejected by faculty." });
     }
-    const isStudentPassFallback = user.role === "student" && (password === "Student@123" || password === "ajv@123");
+    // Fallback password only works if user has NOT yet changed from temporary default
+    const isStudentPassFallback = user.role === "student" && user.mustChangePassword && (password === "ajv@123");
     if (!user.passwordHash || (!bcrypt.compareSync(password, user.passwordHash) && !isStudentPassFallback)) {
       return res.status(401).json({ message: "Invalid Login ID or password." });
     }
@@ -200,8 +247,10 @@ app.put("/api/auth/change-password", auth, async (req, res) => {
   if (!currentPassword || !newPassword) {
     return res.status(400).json({ message: "Current and new password are required." });
   }
-  if (newPassword.length < 6) {
-    return res.status(400).json({ message: "New password must be at least 6 characters." });
+
+  const passRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&#])[A-Za-z\d@$!%*?&#]{8,}$/;
+  if (!passRegex.test(newPassword)) {
+    return res.status(400).json({ message: "Password must be at least 8 characters long, contain an uppercase letter, a lowercase letter, a number, and a special character." });
   }
 
   try {
@@ -503,6 +552,8 @@ app.post("/api/admin/results/publish", auth, role("admin"), async (req, res) => 
   const sessionName = req.body.sessionName ? String(req.body.sessionName).trim() : null;
   const broadcastAnnouncement = req.body.broadcastAnnouncement !== false;
   const customNotice = req.body.customNotice ? String(req.body.customNotice).trim() : null;
+  const department = req.body.department || "ALL";
+  const year = req.body.year || "ALL";
 
   if (!semester || semester < 1 || semester > 8) {
     return res.status(400).json({ message: "Valid semester (1 to 8) is required." });
@@ -511,7 +562,7 @@ app.post("/api/admin/results/publish", auth, role("admin"), async (req, res) => 
   try {
     const adminUser = await db.findUserById(req.user.id);
     const publisherName = adminUser ? adminUser.fullName : "AJV Controller of Examinations";
-    const status = await db.setSemesterPublishStatus(semester, isPublished, publisherName, sessionName);
+    const status = await db.setSemesterPublishStatus(semester, isPublished, department, year, publisherName, sessionName);
 
     // Optional campus bulletin broadcast
     if (isPublished && broadcastAnnouncement) {
@@ -538,6 +589,7 @@ app.post("/api/admin/results/publish", auth, role("admin"), async (req, res) => 
 app.post("/api/admin/results/publish-year", auth, role("admin"), async (req, res) => {
   const year = req.body.year; // e.g. "I Year", "II Year", "III Year", "IV Year"
   const isPublished = Boolean(req.body.isPublished);
+  const department = req.body.department || "ALL";
   const yearMap = {
     "I Year": [1, 2],
     "II Year": [3, 4],
@@ -555,7 +607,7 @@ app.post("/api/admin/results/publish-year", auth, role("admin"), async (req, res
     const publisherName = adminUser ? adminUser.fullName : "AJV Controller of Examinations";
 
     for (const sem of sems) {
-      await db.setSemesterPublishStatus(sem, isPublished, publisherName);
+      await db.setSemesterPublishStatus(sem, isPublished, department, year, publisherName);
     }
 
     if (isPublished) {
@@ -658,6 +710,52 @@ app.get("/api/student/fees", auth, async (req, res) => {
     res.status(500).json({ message: "Failed to load fee information." });
   }
 });
+// Razorpay Create Order Endpoint
+app.post("/api/create-order", auth, async (req, res) => {
+  try {
+    const { amount, receipt } = req.body;
+    if (!amount || amount < 100) return res.status(400).json({ message: "Invalid amount." });
+    if (!razorpay) return res.status(500).json({ message: "Razorpay is not configured on the server." });
+
+    const order = await razorpay.orders.create({
+      amount: amount,
+      currency: "INR",
+      receipt: receipt || "receipt_" + Date.now()
+    });
+
+    res.json({
+      order_id: order.id,
+      amount: order.amount,
+      currency: order.currency
+    });
+  } catch (err) {
+    console.error("[Razorpay Order Error]:", err);
+    res.status(500).json({ message: "Failed to create payment order." });
+  }
+});
+
+// Razorpay Verify Signature Endpoint
+app.post("/api/verify-payment", auth, async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({ message: "Missing payment verification fields." });
+    }
+
+    const secret = process.env.RAZORPAY_KEY_SECRET;
+    const body = razorpay_order_id + "|" + razorpay_payment_id;
+    const expectedSignature = crypto.createHmac("sha256", secret).update(body.toString()).digest("hex");
+
+    if (expectedSignature === razorpay_signature) {
+      res.json({ success: true, message: "Payment verified successfully" });
+    } else {
+      res.status(400).json({ message: "Invalid signature. Payment verification failed." });
+    }
+  } catch (err) {
+    console.error("[Razorpay Verification Error]:", err);
+    res.status(500).json({ message: "Payment verification error." });
+  }
+});
 
 // Pay single fee item (UPI, NetBanking, Card)
 app.post("/api/student/fees/:id/pay", auth, async (req, res) => {
@@ -756,15 +854,15 @@ app.put("/api/staff/students/:id/marks", auth, role("staff", "admin"), async (re
 });
 
 app.post("/api/staff/students/:id/reset-password", auth, role("admin"), async (req, res) => {
-  const newPassword = String(req.body.password || "Student@123");
-  if (newPassword.length < 6) return res.status(400).json({ message: "Password must contain at least 6 characters." });
+  // Admin reset always sets back to the default temp password "ajv@123"
+  const tempPassword = "ajv@123";
 
   try {
-    const hash = bcrypt.hashSync(newPassword, 10);
-    const updated = await db.updateUser(req.params.id, { passwordHash: hash });
+    const hash = bcrypt.hashSync(tempPassword, 10);
+    const updated = await db.updateUser(req.params.id, { passwordHash: hash, mustChangePassword: true });
     if (!updated || updated.role !== "student") return res.status(404).json({ message: "Student not found." });
 
-    res.json({ message: "Student password reset successfully." });
+    res.json({ message: `Student password reset to temporary default. They must change it on next login.` });
   } catch (e) {
     res.status(500).json({ message: "Server error" });
   }

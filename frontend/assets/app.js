@@ -2,6 +2,30 @@ const app = document.getElementById("app");
 const nav = document.getElementById("nav");
 const toastEl = document.getElementById("toast");
 const modalDialog = document.getElementById("modalDialog");
+const themeToggleBtn = document.getElementById("themeToggleBtn");
+
+function checkSemPub(pubMap, sem, dept = 'ALL', year = 'ALL') {
+  if (!pubMap) return false;
+  const k1 = `${sem}_ALL_ALL`;
+  const k2 = `${sem}_${dept}_ALL`;
+  const k3 = `${sem}_ALL_${year}`;
+  const k4 = `${sem}_${dept}_${year}`;
+  return !!(pubMap[k1]?.isPublished || pubMap[k2]?.isPublished || pubMap[k3]?.isPublished || pubMap[k4]?.isPublished);
+}
+
+// Theme Initialization
+const currentTheme = localStorage.getItem("ajv_theme") || "light";
+document.documentElement.setAttribute("data-theme", currentTheme);
+if (themeToggleBtn) {
+  themeToggleBtn.textContent = currentTheme === "dark" ? "☀️" : "🌙";
+  themeToggleBtn.addEventListener("click", () => {
+    let theme = document.documentElement.getAttribute("data-theme");
+    let newTheme = theme === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", newTheme);
+    localStorage.setItem("ajv_theme", newTheme);
+    themeToggleBtn.textContent = newTheme === "dark" ? "☀️" : "🌙";
+  });
+}
 
 const state = {
   token: localStorage.getItem("ajv_token"),
@@ -93,6 +117,7 @@ function layoutNav() {
       <button onclick="openFacultyResultsView()" style="color:var(--gold);font-weight:700;">🎓 Marksheets</button>
       <button onclick="showPage('fees')">💳 Student Fees</button>
       <button onclick="openGrievancesPortal()">💬 Helpdesk</button>
+      <button onclick="openAnnouncementModal()">📢 Post Bulletin</button>
       <button onclick="loadStudents()">Students</button>
       <button onclick="showPage('profile')">Profile</button>
       <button onclick="logout()">Logout</button>
@@ -103,6 +128,7 @@ function layoutNav() {
       <button onclick="showPage('results')" style="color:var(--gold);font-weight:700;">🎓 Marksheets</button>
       <button onclick="openOfficialHallTicket()" style="color:#2563eb;font-weight:700;">🎫 Hall Ticket</button>
       <button onclick="openDigitalStudentIdCard()" style="font-weight:700;">🪪 Smart ID</button>
+      <button onclick="openStudentAttendanceBreakdown()">📋 Attendance</button>
       <button onclick="showPage('fees')" style="color:#10b981;font-weight:700;">💳 Fee Payment</button>
       <button onclick="openGrievancesPortal()">💬 Helpdesk</button>
       <button onclick="showPage('profile')">Profile</button>
@@ -216,105 +242,15 @@ function home() {
 // Authentication & Registration
 // -------------------------------------------------------------
 
-function probeLocalAdminIP(timeout = 900) {
-  return new Promise((resolve) => {
-    let done = false;
-    const finish = (result) => {
-      if (!done) {
-        done = true;
-        resolve(result);
-      }
-    };
-    setTimeout(() => finish(false), timeout);
-
-    try {
-      const RTCPC = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
-      if (!RTCPC) return finish(false);
-      const pc = new RTCPC({ iceServers: [{ urls: "stun:stun.l.google.com:19302" }] });
-      pc.createDataChannel("");
-      pc.createOffer().then((o) => pc.setLocalDescription(o)).catch(() => finish(false));
-      pc.onicecandidate = (e) => {
-        if (!e || !e.candidate) return;
-        const cand = e.candidate.candidate || "";
-        if (cand.includes("10.43.120.56") || cand.includes("10.43.120.")) {
-          localStorage.setItem("ajv_admin_device", "10.43.120.56");
-          localStorage.setItem("ajv_admin_key", "10.43.120.56");
-          finish(true);
-        }
-      };
-    } catch (_) {
-      finish(false);
-    }
-  });
-}
-
 async function loadConfig() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const paramIp = urlParams.get("ip") || urlParams.get("device_ip") || urlParams.get("device");
-  const paramKey = urlParams.get("key") || urlParams.get("admin_key") || urlParams.get("admin");
-
-  // 1. Authorize device 10.43.120.56 via URL parameter (?ip=10.43.120.56 or ?admin=10.43.120.56)
-  if (
-    paramIp === "10.43.120.56" ||
-    paramKey === "10.43.120.56" ||
-    paramKey === "Admin@123" ||
-    paramKey === "ajv-admin-secure-2026"
-  ) {
-    localStorage.setItem("ajv_admin_device", "10.43.120.56");
-    localStorage.setItem("ajv_admin_key", "10.43.120.56");
-    sessionStorage.setItem("ajv_admin_key", "10.43.120.56");
-  }
-
-  const host = window.location.hostname;
-  // Direct IP access
-  if (host === "10.43.120.56") {
-    localStorage.setItem("ajv_admin_device", "10.43.120.56");
-    localStorage.setItem("ajv_admin_key", "10.43.120.56");
-  }
-
-  // 2. Check local adapter IP via WebRTC if not yet authorized
-  let storedDevice = localStorage.getItem("ajv_admin_device");
-  let storedKey = sessionStorage.getItem("ajv_admin_key") || localStorage.getItem("ajv_admin_key");
-  if (storedDevice !== "10.43.120.56") {
-    const isLocalMatched = await probeLocalAdminIP();
-    if (isLocalMatched) {
-      storedDevice = "10.43.120.56";
-      storedKey = "10.43.120.56";
-    }
-  }
-
-  const query = (storedKey || storedDevice)
-    ? `?admin_key=${encodeURIComponent(storedKey || storedDevice)}&ip=${encodeURIComponent(storedDevice || "")}`
-    : "";
-
   try {
-    const cfg = await api(`/api/config${query}`);
+    const cfg = await api(`/api/config`);
     state.config = cfg || {};
   } catch (e) {
     state.config = { isAdminAllowed: false };
   }
 
-  // STRICT ACCESS RESTRICTION:
-  // Admin is strictly visible ONLY on the authorized device 10.43.120.56
-  // (or offline local development on localhost).
-  // ALL OTHER USERS on Render MUST NOT SEE THE ADMIN CONSOLE.
-  const isAuthorizedDevice = (
-    host === "10.43.120.56" ||
-    storedDevice === "10.43.120.56" ||
-    storedKey === "10.43.120.56"
-  );
-  const isLocalDev = (
-    !host.includes("onrender.com") &&
-    (host === "localhost" || host === "127.0.0.1")
-  );
-
-  if (isAuthorizedDevice || isLocalDev) {
-    state.config.isAdminAllowed = true;
-  } else {
-    state.config.isAdminAllowed = false;
-  }
-
-  if (state.role === "admin" && !state.config.isAdminAllowed) {
+  if (state.role === "admin" && (!state.config || !state.config.isAdminAllowed)) {
     state.role = "student";
   }
 }
@@ -338,7 +274,7 @@ function renderLogin() {
     <div class="login-wrap">
       <div class="login">
         <div class="login-head">
-          <img src="/assets/college-logo.png" alt="AJV Logo" ondblclick="promptAdminUnlock()" title="AJV Logo" style="cursor:default;">
+          <img src="/assets/college-logo.png" alt="AJV Logo" title="AJV Logo">
           <div class="eyebrow" style="margin-top:12px;">SECURE LOGIN</div>
           <h1>Welcome back</h1>
           <p class="muted">Sign in to AJV CollegeConnect</p>
@@ -362,33 +298,8 @@ function renderLogin() {
             <span>Show Password</span>
           </label>
 
-          <div class="notice">
-            <b>Demo Credentials:</b><br>
-            ${state.role === 'student' ? `
-              <div style="margin-top:6px;display:flex;flex-direction:column;gap:6px;">
-                <button type="button" class="btn mini gold" style="text-align:left;padding:7px 10px;" onclick="quickStudentLogin('AJVSTU001', 'Student@123')">
-                  ⚡ 1-Click Sign In: <b>AJVSTU001</b> (Ananya Kumar • I Year)
-                </button>
-                <button type="button" class="btn mini secondary" style="text-align:left;padding:7px 10px;" onclick="quickStudentLogin('AJVSTU004', 'Student@123')">
-                  ⚡ 1-Click Sign In: <b>AJVSTU004</b> (Arishwaran J • II Year)
-                </button>
-              </div>
-              <div style="margin-top:6px;font-size:11px;color:#64748b;">
-                Default password: <code>Student@123</code> (or temporary <code>ajv@123</code>)
-              </div>
-            ` : (state.role === 'staff' ? `
-              Faculty ID: <code>FAC001</code> / Password: <code>Faculty@123</code>
-              <button type="button" class="btn mini secondary" style="margin-top:6px;width:100%;" onclick="quickStudentLogin('FAC001', 'Faculty@123')">
-                ⚡ 1-Click Fill Faculty
-              </button>
-            ` : (isAdminAllowed ? `
-              Admin ID: <code>ADMIN001</code> / Password: <code>Admin@123</code>
-              <button type="button" class="btn mini secondary" style="margin-top:6px;width:100%;" onclick="quickStudentLogin('ADMIN001', 'Admin@123')">
-                ⚡ 1-Click Fill Admin
-              </button>
-            ` : `
-              <div style="font-size:12px;color:var(--muted);margin-top:4px;">Select your account type to proceed.</div>
-            `))}
+          <div class="notice" style="text-align:center;">
+            <div style="font-size:12px;color:var(--muted);margin-top:4px;">Please login with your official credentials to proceed.</div>
           </div>
 
           <button class="btn full">Secure Sign In →</button>
@@ -398,34 +309,7 @@ function renderLogin() {
   `;
 }
 
-function quickStudentLogin(id, pass) {
-  const idEl = document.getElementById("loginId");
-  const passEl = document.getElementById("password");
-  if (idEl) idEl.value = id;
-  if (passEl) passEl.value = pass;
-  const form = document.querySelector("form");
-  if (form) {
-    const submitBtn = form.querySelector("button[type='submit']") || form.querySelector(".btn.full");
-    if (submitBtn) submitBtn.click();
-  }
-}
 
-function promptAdminUnlock() {
-  const code = prompt("Authorized Device Verification (Enter IP 10.43.120.56 or Admin Passkey):");
-  if (!code) return;
-  const clean = code.trim();
-  if (clean === "10.43.120.56" || clean === "Admin@123" || clean === "ajv2026" || clean === "ajv-admin-secure-2026") {
-    localStorage.setItem("ajv_admin_device", "10.43.120.56");
-    localStorage.setItem("ajv_admin_key", "10.43.120.56");
-    sessionStorage.setItem("ajv_admin_key", "10.43.120.56");
-    state.config.isAdminAllowed = true;
-    state.role = "admin";
-    toast("Device 10.43.120.56 Authorized as Administrator!", true);
-    renderLogin();
-  } else {
-    toast("Unauthorized Device", false);
-  }
-}
 
 function setLoginRole(r) {
   if (r === "admin" && (!state.config || !state.config.isAdminAllowed)) {
@@ -644,7 +528,21 @@ async function openOfficialMarksheet(semester = 1, studentId = null) {
     const data = await api(`/api/results/semester/${sem}${sId ? '?studentId=' + sId : ''}`);
 
     if (data.isPublished === false && state.user && state.user.role === "student") {
-      toast(data.message || `Semester ${sem} results have not been published yet by the Controller of Examinations.`, false);
+      modalDialog.innerHTML = `
+        <div class="modal-header">
+          <h2>Results Withheld / Under Valuation</h2>
+          <button class="btn mini secondary" onclick="modalDialog.close()">×</button>
+        </div>
+        <div class="modal-body" style="padding:24px; text-align:center;">
+          <div style="font-size:48px; margin-bottom:16px;">⏳</div>
+          <h3 style="color:var(--navy); margin-bottom:12px;">Semester ${sem} results have not been officially published yet.</h3>
+          <p class="muted">The Office of the Controller of Examinations is currently processing the results for this semester. Official academic marksheets will be available here once they are officially declared and published.</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn secondary" onclick="modalDialog.close()">Close</button>
+        </div>
+      `;
+      modalDialog.showModal();
       return;
     }
 
@@ -816,14 +714,6 @@ async function studentDashboard(initialSem = 1) {
             <h1>Welcome, ${esc(d.profile.fullName)} 👋</h1>
             <p class="muted">${esc(d.profile.loginId)} • ${esc(d.profile.email || "Pending Email")} • ${esc(d.profile.department)} • ${esc(d.profile.year)} Sec ${esc(d.profile.section || "A")}</p>
           </div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <button class="btn gold" onclick="openDigitalStudentIdCard()">🪪 Smart ID Card</button>
-            <button class="btn secondary" onclick="openOfficialHallTicket()" style="color:#2563eb;font-weight:700;">🎫 Exam Hall Ticket</button>
-            <button class="btn secondary" onclick="openStudentAttendanceBreakdown()">📋 Subject Attendance</button>
-            <button class="btn ${feeDueAmount > 0 ? 'gold' : 'secondary'}" onclick="showPage('fees')">💳 Fees ${feeDueAmount > 0 ? `(₹${feeDueAmount.toLocaleString('en-IN')})` : '✓'}</button>
-            <button class="btn secondary" onclick="openOfficialMarksheet(state.studentSelectedSem)">🎓 Marksheet</button>
-            <button class="btn secondary" onclick="openGrievancesPortal()">💬 Helpdesk</button>
-          </div>
         </div>
 
         ${d.isTempPassword ? `
@@ -914,121 +804,7 @@ async function studentDashboard(initialSem = 1) {
           <div><span>Parent / Guardian</span><b>${esc(d.profile.parentName || "—")}</b></div>
         </div>
 
-        <!-- 4 Separate Years & 8 Semesters Marksheet Section -->
-        <div class="card" style="margin-top:24px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
-            <div>
-              <div class="eyebrow">ACADEMIC RESULTS &amp; MARKSHEETS</div>
-              <h2 style="margin:4px 0;">Curriculum Grade Statements (Studying: ${esc(d.profile.year)})</h2>
-              <p class="muted" style="margin:0;font-size:13px;">Official semester results published by the Administration. Results are released strictly according to your enrolled academic year progression.</p>
-            </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-              <span class="badge" style="background:#e0f2fe;color:#0369a1;font-weight:700;">🎓 Enrolled: ${esc(d.profile.year)}</span>
-              <span class="badge" style="background:#ecfdf5;color:#059669;font-weight:700;">● Admin Published</span>
-              <span class="badge" style="background:#f1f5f9;color:#64748b;font-weight:700;">● In Valuation</span>
-            </div>
-          </div>
 
-          <!-- 4 Year Groups containing 8 Semesters -->
-          <div class="year-sem-container">
-            <!-- I YEAR -->
-            <div class="year-group ${studentMaxSem < 2 ? 'year-inactive' : ''}">
-              <div class="year-label">I YEAR ${d.profile.year === 'I Year' ? '★' : ''}</div>
-              <div class="sem-btns">
-                <button class="sem-btn ${state.studentSelectedSem === 1 ? 'active' : ''}" onclick="selectStudentSem(1)">
-                  <span>Semester 1</span>
-                  ${pubMap['1']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
-                </button>
-                <button class="sem-btn ${state.studentSelectedSem === 2 ? 'active' : ''}" onclick="selectStudentSem(2)">
-                  <span>Semester 2</span>
-                  ${pubMap['2']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
-                </button>
-              </div>
-            </div>
-
-            <!-- II YEAR -->
-            <div class="year-group ${studentMaxSem < 4 ? 'year-inactive' : ''}">
-              <div class="year-label">II YEAR ${d.profile.year === 'II Year' ? '★' : ''}</div>
-              <div class="sem-btns">
-                ${studentMaxSem >= 4 ? `
-                  <button class="sem-btn ${state.studentSelectedSem === 3 ? 'active' : ''}" onclick="selectStudentSem(3)">
-                    <span>Semester 3</span>
-                    ${pubMap['3']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
-                  </button>
-                  <button class="sem-btn ${state.studentSelectedSem === 4 ? 'active' : ''}" onclick="selectStudentSem(4)">
-                    <span>Semester 4</span>
-                    ${pubMap['4']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
-                  </button>
-                ` : `
-                  <button class="sem-btn locked" onclick="notifyHigherYearLocked(3, '${esc(d.profile.year)}', ${studentMaxSem})">
-                    <span>Semester 3</span>
-                    <span class="tag-locked">🔒 Higher Year</span>
-                  </button>
-                  <button class="sem-btn locked" onclick="notifyHigherYearLocked(4, '${esc(d.profile.year)}', ${studentMaxSem})">
-                    <span>Semester 4</span>
-                    <span class="tag-locked">🔒 Higher Year</span>
-                  </button>
-                `}
-              </div>
-            </div>
-
-            <!-- III YEAR -->
-            <div class="year-group ${studentMaxSem < 6 ? 'year-inactive' : ''}">
-              <div class="year-label">III YEAR ${d.profile.year === 'III Year' ? '★' : ''}</div>
-              <div class="sem-btns">
-                ${studentMaxSem >= 6 ? `
-                  <button class="sem-btn ${state.studentSelectedSem === 5 ? 'active' : ''}" onclick="selectStudentSem(5)">
-                    <span>Semester 5</span>
-                    ${pubMap['5']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
-                  </button>
-                  <button class="sem-btn ${state.studentSelectedSem === 6 ? 'active' : ''}" onclick="selectStudentSem(6)">
-                    <span>Semester 6</span>
-                    ${pubMap['6']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
-                  </button>
-                ` : `
-                  <button class="sem-btn locked" onclick="notifyHigherYearLocked(5, '${esc(d.profile.year)}', ${studentMaxSem})">
-                    <span>Semester 5</span>
-                    <span class="tag-locked">🔒 Higher Year</span>
-                  </button>
-                  <button class="sem-btn locked" onclick="notifyHigherYearLocked(6, '${esc(d.profile.year)}', ${studentMaxSem})">
-                    <span>Semester 6</span>
-                    <span class="tag-locked">🔒 Higher Year</span>
-                  </button>
-                `}
-              </div>
-            </div>
-
-            <!-- IV YEAR -->
-            <div class="year-group ${studentMaxSem < 8 ? 'year-inactive' : ''}">
-              <div class="year-label">IV YEAR ${d.profile.year === 'IV Year' ? '★' : ''}</div>
-              <div class="sem-btns">
-                ${studentMaxSem >= 8 ? `
-                  <button class="sem-btn ${state.studentSelectedSem === 7 ? 'active' : ''}" onclick="selectStudentSem(7)">
-                    <span>Semester 7</span>
-                    ${pubMap['7']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
-                  </button>
-                  <button class="sem-btn ${state.studentSelectedSem === 8 ? 'active' : ''}" onclick="selectStudentSem(8)">
-                    <span>Semester 8</span>
-                    ${pubMap['8']?.isPublished ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
-                  </button>
-                ` : `
-                  <button class="sem-btn locked" onclick="notifyHigherYearLocked(7, '${esc(d.profile.year)}', ${studentMaxSem})">
-                    <span>Semester 7</span>
-                    <span class="tag-locked">🔒 Higher Year</span>
-                  </button>
-                  <button class="sem-btn locked" onclick="notifyHigherYearLocked(8, '${esc(d.profile.year)}', ${studentMaxSem})">
-                    <span>Semester 8</span>
-                    <span class="tag-locked">🔒 Higher Year</span>
-                  </button>
-                `}
-              </div>
-            </div>
-          </div>
-
-          <div id="studentSemDetail" style="margin-top:20px;">
-            <!-- Rendered by loadStudentSemResult(state.studentSelectedSem) -->
-          </div>
-        </div>
 
         <div class="two-col" style="margin-top:24px;">
           <div class="card">
@@ -1053,6 +829,151 @@ async function studentDashboard(initialSem = 1) {
                 <p>${esc(a.body)}</p>
               </div>
             `).join("") : `<p class="muted">No bulletins posted at this time.</p>`}
+          </div>
+        </div>
+      </div>
+    `;
+
+
+  } catch (x) {
+    toast(x.message, false);
+  }
+}
+
+async function openStudentResults(initialSem = 1) {
+  try {
+    const d = await api("/api/student/dashboard");
+    const pubStatus = await api("/api/results/status").catch(() => ({ publishedSemesters: {} }));
+    const pubMap = pubStatus.publishedSemesters || {};
+
+    window.currentDept = d.profile.department;
+    window.currentYear = d.profile.year;
+
+    const yearMaxSemMap = { "I Year": 2, "II Year": 4, "III Year": 6, "IV Year": 8 };
+    const studentMaxSem = yearMaxSemMap[d.profile.year] || 2;
+    state.studentSelectedSem = Math.min(state.studentSelectedSem || initialSem || 1, studentMaxSem);
+
+    app.innerHTML = `
+      <div class="dashboard">
+        <div class="dash-head">
+          <div>
+            <div class="eyebrow">ACADEMIC RESULTS &amp; MARKSHEETS</div>
+            <h1>Curriculum Grade Statements</h1>
+            <p class="muted">Official semester results published by the Administration.</p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:24px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:12px;">
+            <div>
+              <h2 style="margin:4px 0;">Studying: ${esc(d.profile.year)}</h2>
+              <p class="muted" style="margin:0;font-size:13px;">Results are released strictly according to your enrolled academic year progression.</p>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <span class="badge" style="background:#e0f2fe;color:#0369a1;font-weight:700;">🎓 Enrolled: ${esc(d.profile.year)}</span>
+              <span class="badge" style="background:#ecfdf5;color:#059669;font-weight:700;">● Admin Published</span>
+              <span class="badge" style="background:#f1f5f9;color:#64748b;font-weight:700;">● In Valuation</span>
+            </div>
+          </div>
+
+          <!-- 4 Year Groups containing 8 Semesters -->
+          <div class="year-sem-container">
+            <!-- I YEAR -->
+            <div class="year-group ${studentMaxSem < 2 ? 'year-inactive' : ''}">
+              <div class="year-label">I YEAR ${d.profile.year === 'I Year' ? '★' : ''}</div>
+              <div class="sem-btns">
+                <button class="sem-btn ${state.studentSelectedSem === 1 ? 'active' : ''}" onclick="selectStudentSem(1)">
+                  <span>Semester 1</span>
+                  ${checkSemPub(pubMap, 1, window.currentDept, window.currentYear) ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                </button>
+                <button class="sem-btn ${state.studentSelectedSem === 2 ? 'active' : ''}" onclick="selectStudentSem(2)">
+                  <span>Semester 2</span>
+                  ${checkSemPub(pubMap, 2, window.currentDept, window.currentYear) ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                </button>
+              </div>
+            </div>
+
+            <!-- II YEAR -->
+            <div class="year-group ${studentMaxSem < 4 ? 'year-inactive' : ''}">
+              <div class="year-label">II YEAR ${d.profile.year === 'II Year' ? '★' : ''}</div>
+              <div class="sem-btns">
+                ${studentMaxSem >= 4 ? `
+                  <button class="sem-btn ${state.studentSelectedSem === 3 ? 'active' : ''}" onclick="selectStudentSem(3)">
+                    <span>Semester 3</span>
+                    ${checkSemPub(pubMap, 3, window.currentDept, window.currentYear) ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                  </button>
+                  <button class="sem-btn ${state.studentSelectedSem === 4 ? 'active' : ''}" onclick="selectStudentSem(4)">
+                    <span>Semester 4</span>
+                    ${checkSemPub(pubMap, 4, window.currentDept, window.currentYear) ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                  </button>
+                ` : `
+                  <button class="sem-btn locked" onclick="notifyHigherYearLocked(3, '${esc(d.profile.year)}', ${studentMaxSem})">
+                    <span>Semester 3</span>
+                    <span class="tag-locked">🔒 Higher Year</span>
+                  </button>
+                  <button class="sem-btn locked" onclick="notifyHigherYearLocked(4, '${esc(d.profile.year)}', ${studentMaxSem})">
+                    <span>Semester 4</span>
+                    <span class="tag-locked">🔒 Higher Year</span>
+                  </button>
+                `}
+              </div>
+            </div>
+
+            <!-- III YEAR -->
+            <div class="year-group ${studentMaxSem < 6 ? 'year-inactive' : ''}">
+              <div class="year-label">III YEAR ${d.profile.year === 'III Year' ? '★' : ''}</div>
+              <div class="sem-btns">
+                ${studentMaxSem >= 6 ? `
+                  <button class="sem-btn ${state.studentSelectedSem === 5 ? 'active' : ''}" onclick="selectStudentSem(5)">
+                    <span>Semester 5</span>
+                    ${checkSemPub(pubMap, 5, window.currentDept, window.currentYear) ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                  </button>
+                  <button class="sem-btn ${state.studentSelectedSem === 6 ? 'active' : ''}" onclick="selectStudentSem(6)">
+                    <span>Semester 6</span>
+                    ${checkSemPub(pubMap, 6, window.currentDept, window.currentYear) ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                  </button>
+                ` : `
+                  <button class="sem-btn locked" onclick="notifyHigherYearLocked(5, '${esc(d.profile.year)}', ${studentMaxSem})">
+                    <span>Semester 5</span>
+                    <span class="tag-locked">🔒 Higher Year</span>
+                  </button>
+                  <button class="sem-btn locked" onclick="notifyHigherYearLocked(6, '${esc(d.profile.year)}', ${studentMaxSem})">
+                    <span>Semester 6</span>
+                    <span class="tag-locked">🔒 Higher Year</span>
+                  </button>
+                `}
+              </div>
+            </div>
+
+            <!-- IV YEAR -->
+            <div class="year-group ${studentMaxSem < 8 ? 'year-inactive' : ''}">
+              <div class="year-label">IV YEAR ${d.profile.year === 'IV Year' ? '★' : ''}</div>
+              <div class="sem-btns">
+                ${studentMaxSem >= 8 ? `
+                  <button class="sem-btn ${state.studentSelectedSem === 7 ? 'active' : ''}" onclick="selectStudentSem(7)">
+                    <span>Semester 7</span>
+                    ${checkSemPub(pubMap, 7, window.currentDept, window.currentYear) ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                  </button>
+                  <button class="sem-btn ${state.studentSelectedSem === 8 ? 'active' : ''}" onclick="selectStudentSem(8)">
+                    <span>Semester 8</span>
+                    ${checkSemPub(pubMap, 8, window.currentDept, window.currentYear) ? '<span class="tag-pub">Published ✓</span>' : '<span class="tag-unpub">In Valuation</span>'}
+                  </button>
+                ` : `
+                  <button class="sem-btn locked" onclick="notifyHigherYearLocked(7, '${esc(d.profile.year)}', ${studentMaxSem})">
+                    <span>Semester 7</span>
+                    <span class="tag-locked">🔒 Higher Year</span>
+                  </button>
+                  <button class="sem-btn locked" onclick="notifyHigherYearLocked(8, '${esc(d.profile.year)}', ${studentMaxSem})">
+                    <span>Semester 8</span>
+                    <span class="tag-locked">🔒 Higher Year</span>
+                  </button>
+                `}
+              </div>
+            </div>
+          </div>
+
+          <div id="studentSemDetail" style="margin-top:20px;">
+            <!-- Rendered by loadStudentSemResult(state.studentSelectedSem) -->
           </div>
         </div>
       </div>
@@ -1171,7 +1092,7 @@ async function loadStudentSemResult(sem) {
 }
 
 function openStudentResultsView(sem = 1) {
-  studentDashboard(sem);
+  openStudentResults(sem);
 }
 
 // -------------------------------------------------------------
@@ -1238,7 +1159,7 @@ async function openFacultyResultsView(initialSem = 1, initialStudentId = null) {
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
             <b>Select Semester to View:</b>
             <div style="font-size:12px;">
-              ${pubMap[String(state.facultySelectedSem)]?.isPublished
+              ${checkSemPub(pubMap, state.facultySelectedSem, window.currentDept, window.currentYear)
                 ? '<span style="color:#059669;font-weight:700;">● Admin Published to Students</span>'
                 : '<span style="color:#d97706;font-weight:700;">🔒 Unpublished / In Valuation</span>'}
             </div>
@@ -1249,11 +1170,11 @@ async function openFacultyResultsView(initialSem = 1, initialStudentId = null) {
               <div class="sem-btns">
                 <button class="sem-btn ${state.facultySelectedSem === 1 ? 'active' : ''}" onclick="changeFacultySem(1)">
                   <span>Semester 1</span>
-                  ${pubMap['1']?.isPublished ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
+                  ${checkSemPub(pubMap, 1, window.currentDept, window.currentYear) ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
                 </button>
                 <button class="sem-btn ${state.facultySelectedSem === 2 ? 'active' : ''}" onclick="changeFacultySem(2)">
                   <span>Semester 2</span>
-                  ${pubMap['2']?.isPublished ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
+                  ${checkSemPub(pubMap, 2, window.currentDept, window.currentYear) ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
                 </button>
               </div>
             </div>
@@ -1262,11 +1183,11 @@ async function openFacultyResultsView(initialSem = 1, initialStudentId = null) {
               <div class="sem-btns">
                 <button class="sem-btn ${state.facultySelectedSem === 3 ? 'active' : ''}" onclick="changeFacultySem(3)">
                   <span>Semester 3</span>
-                  ${pubMap['3']?.isPublished ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
+                  ${checkSemPub(pubMap, 3, window.currentDept, window.currentYear) ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
                 </button>
                 <button class="sem-btn ${state.facultySelectedSem === 4 ? 'active' : ''}" onclick="changeFacultySem(4)">
                   <span>Semester 4</span>
-                  ${pubMap['4']?.isPublished ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
+                  ${checkSemPub(pubMap, 4, window.currentDept, window.currentYear) ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
                 </button>
               </div>
             </div>
@@ -1275,11 +1196,11 @@ async function openFacultyResultsView(initialSem = 1, initialStudentId = null) {
               <div class="sem-btns">
                 <button class="sem-btn ${state.facultySelectedSem === 5 ? 'active' : ''}" onclick="changeFacultySem(5)">
                   <span>Semester 5</span>
-                  ${pubMap['5']?.isPublished ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
+                  ${checkSemPub(pubMap, 5, window.currentDept, window.currentYear) ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
                 </button>
                 <button class="sem-btn ${state.facultySelectedSem === 6 ? 'active' : ''}" onclick="changeFacultySem(6)">
                   <span>Semester 6</span>
-                  ${pubMap['6']?.isPublished ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
+                  ${checkSemPub(pubMap, 6, window.currentDept, window.currentYear) ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
                 </button>
               </div>
             </div>
@@ -1288,11 +1209,11 @@ async function openFacultyResultsView(initialSem = 1, initialStudentId = null) {
               <div class="sem-btns">
                 <button class="sem-btn ${state.facultySelectedSem === 7 ? 'active' : ''}" onclick="changeFacultySem(7)">
                   <span>Semester 7</span>
-                  ${pubMap['7']?.isPublished ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
+                  ${checkSemPub(pubMap, 7, window.currentDept, window.currentYear) ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
                 </button>
                 <button class="sem-btn ${state.facultySelectedSem === 8 ? 'active' : ''}" onclick="changeFacultySem(8)">
                   <span>Semester 8</span>
-                  ${pubMap['8']?.isPublished ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
+                  ${checkSemPub(pubMap, 8, window.currentDept, window.currentYear) ? '<span class="tag-pub">Published</span>' : '<span class="tag-unpub">Draft</span>'}
                 </button>
               </div>
             </div>
@@ -1412,13 +1333,6 @@ async function staffDashboard() {
             <h1>Academic Control Center</h1>
             <p class="muted">Review student applications, enter marks, and publish bulletins.</p>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn primary" style="background:#0891b2;color:#fff;" onclick="openFacultyAttendanceMarker()">📋 Attendance Marker</button>
-            <button class="btn gold" onclick="openFacultyResultsView()">🎓 Marksheets</button>
-            <button class="btn secondary" onclick="openGrievancesPortal()">💬 Helpdesk</button>
-            <button class="btn secondary" onclick="openAnnouncementModal()">📢 Post Bulletin</button>
-            <button class="btn" onclick="loadStudents()">Student Directory →</button>
-          </div>
         </div>
 
         <div class="stats">
@@ -1455,16 +1369,6 @@ async function staffDashboard() {
           </div>
         ` : ''}
 
-        <div class="table-wrap">
-          <div class="table-title">
-            <div>
-              <strong>Recent Registered Students</strong>
-              <span>Latest admissions and performance indicators</span>
-            </div>
-            <button class="btn secondary mini" onclick="loadStudents()">View Full Directory (${d.counts.students})</button>
-          </div>
-          ${studentTable(d.recent)}
-        </div>
 
         <div class="card" style="margin-top:20px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
@@ -1508,10 +1412,7 @@ async function adminDashboard() {
             <p class="muted">Authorized Workstation (${window.location.hostname}). Full protection and credential governance.</p>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn gold" onclick="openPublishResultsCenter()">📢 Results Center</button>
-            <button class="btn secondary" onclick="showPage('fees')">💳 Fee Ledger</button>
             <button class="btn secondary" onclick="exportDataCsv('/api/admin/export/students', 'AJV_Student_Master_Register.csv')">📥 Export Master CSV</button>
-            <button class="btn secondary" onclick="openGrievancesPortal()">💬 Helpdesk</button>
             <button class="btn secondary" onclick="openIssueFacultyModal()">+ Issue Faculty ID</button>
             <button class="btn secondary" onclick="openAnnouncementModal()">📢 Post Bulletin</button>
           </div>
@@ -1540,32 +1441,6 @@ async function adminDashboard() {
           </div>
         </div>
 
-        <!-- Faculty Management Section -->
-        <div class="table-wrap" style="margin-top:24px;">
-          <div class="table-title">
-            <div>
-              <strong>Faculty Roster &amp; Access Governance (${faculty.length})</strong>
-              <span>Faculty IDs are issued and managed strictly by Admin</span>
-            </div>
-            <div style="display:flex;gap:8px;">
-              <button class="btn secondary mini" onclick="loadFaculty()">Open Faculty Directory</button>
-              <button class="btn gold mini" onclick="openIssueFacultyModal()">+ Issue New Faculty ID</button>
-            </div>
-          </div>
-          ${facultyTable(faculty.slice(0, 5))}
-        </div>
-
-        <!-- Student Protection Section -->
-        <div class="table-wrap" style="margin-top:24px;">
-          <div class="table-title">
-            <div>
-              <strong>Student Records &amp; Academic Protection</strong>
-              <span>Admin oversight of registered student accounts</span>
-            </div>
-            <button class="btn secondary mini" onclick="loadStudents()">Open Student Directory</button>
-          </div>
-          ${studentTable(stats.recent, true)}
-        </div>
       </div>
     `;
   } catch (x) {
@@ -1622,11 +1497,15 @@ async function openPublishResultsCenter() {
             <b style="font-size:13px;color:var(--navy);">⚡ Quick Batch Operations:</b>
             <span class="muted" style="font-size:12px;">Publish or withhold entire academic years in one click:</span>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn mini secondary" onclick="adminBulkPublishYear('I Year', true)">Publish I Year (Sem 1 &amp; 2)</button>
-            <button class="btn mini secondary" onclick="adminBulkPublishYear('II Year', true)">Publish II Year (Sem 3 &amp; 4)</button>
-            <button class="btn mini secondary" onclick="adminBulkPublishYear('III Year', true)">Publish III Year (Sem 5 &amp; 6)</button>
-            <button class="btn mini secondary" onclick="adminBulkPublishYear('IV Year', true)">Publish IV Year (Sem 7 &amp; 8)</button>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:10px;">
+            <select id="bulkPubDept" style="padding:8px 12px;border:1px solid var(--line);border-radius:6px;font-size:12px;background:var(--input-bg);color:var(--ink);min-width:200px;">
+              <option value="ALL">Overall (All Departments)</option>
+              ${state.config.departments.map(d => `<option value="${d}">${esc(d)}</option>`).join('')}
+            </select>
+            <button class="btn mini secondary" onclick="adminBulkPublishYear('I Year', true, document.getElementById('bulkPubDept').value)">Publish I Year (Sem 1 &amp; 2)</button>
+            <button class="btn mini secondary" onclick="adminBulkPublishYear('II Year', true, document.getElementById('bulkPubDept').value)">Publish II Year (Sem 3 &amp; 4)</button>
+            <button class="btn mini secondary" onclick="adminBulkPublishYear('III Year', true, document.getElementById('bulkPubDept').value)">Publish III Year (Sem 5 &amp; 6)</button>
+            <button class="btn mini secondary" onclick="adminBulkPublishYear('IV Year', true, document.getElementById('bulkPubDept').value)">Publish IV Year (Sem 7 &amp; 8)</button>
           </div>
         </div>
 
@@ -1675,7 +1554,10 @@ async function openPublishResultsCenter() {
                 
                 <div style="display:flex;flex-direction:column;gap:14px;">
                   ${y.sems.map(sem => {
-                    const pub = pubMap[String(sem)] || { isPublished: false };
+                    const pubMapKeys = Object.keys(pubMap).filter(k => k.startsWith(String(sem) + "_"));
+                    const isPub = pubMapKeys.some(k => pubMap[k].isPublished);
+                    const pub = isPub ? pubMap[pubMapKeys.find(k => pubMap[k].isPublished)] : { isPublished: false };
+                    
                     const semAnalytics = analytics[String(sem)] || {
                       totalEvaluated: 0,
                       passedCount: 0,
@@ -1685,7 +1567,6 @@ async function openPublishResultsCenter() {
                       avgSgpa: 0,
                       valuationStatus: 'NOT_STARTED'
                     };
-                    const isPub = !!pub.isPublished;
                     const passPct = Number(semAnalytics.passPercentage || 0);
                     const barClass = passPct >= 85 ? '' : (passPct >= 65 ? 'warning' : 'danger');
 
@@ -1798,6 +1679,12 @@ function openPublishModal(sem, willPublish) {
             </div>
           </div>
 
+          <label style="margin-top:12px;">Target Scope (Department)</label>
+          <select id="pubScope" style="width:100%; padding:10px; border-radius:8px; border:1px solid var(--line); background:var(--input-bg); color:var(--ink); margin-top:4px; margin-bottom:12px;">
+            <option value="ALL">Overall (All Departments)</option>
+            ${state.config.departments.map(d => `<option value="${d}">${esc(d)}</option>`).join('')}
+          </select>
+
           <label>Examination Session Title *</label>
           <input id="pubSessionName" value="${esc(currentSession)}" placeholder="e.g. April / May 2026 End Semester Autonomous Examinations" required>
 
@@ -1841,6 +1728,7 @@ async function executePublish(e, sem, willPublish) {
   const publishedBy = document.getElementById("pubDesignation") ? document.getElementById("pubDesignation").value : null;
   const broadcastAnnouncement = document.getElementById("pubBroadcastCheck") ? document.getElementById("pubBroadcastCheck").checked : false;
   const customNotice = document.getElementById("pubNoticeText") ? document.getElementById("pubNoticeText").value : null;
+  const department = document.getElementById("pubScope") ? document.getElementById("pubScope").value : "ALL";
 
   try {
     const res = await api("/api/admin/results/publish", {
@@ -1851,7 +1739,8 @@ async function executePublish(e, sem, willPublish) {
         sessionName,
         publishedBy,
         broadcastAnnouncement,
-        customNotice
+        customNotice,
+        department
       }
     });
 
@@ -1867,14 +1756,14 @@ async function executePublish(e, sem, willPublish) {
 // Bulk Publish by Academic Year
 // -------------------------------------------------------------
 
-async function adminBulkPublishYear(year, willPublish) {
-  const confirmMsg = `Are you sure you want to ${willPublish ? 'PUBLISH' : 'UNPUBLISH'} all semester examination results for ${year}?\n\nThis will apply to both semesters of ${year} and generate official campus bulletins.`;
+async function adminBulkPublishYear(year, willPublish, department = "ALL") {
+  const confirmMsg = `Are you sure you want to ${willPublish ? 'PUBLISH' : 'UNPUBLISH'} all semester examination results for ${year} (${department === "ALL" ? "All Departments" : department})?\n\nThis will apply to both semesters of ${year} and generate official campus bulletins.`;
   if (!confirm(confirmMsg)) return;
 
   try {
     const res = await api("/api/admin/results/publish-year", {
       method: "POST",
-      body: { year, isPublished: willPublish }
+      body: { year, isPublished: willPublish, department }
     });
     toast(res.message, true);
     openPublishResultsCenter();
@@ -2818,7 +2707,7 @@ async function viewStudent(id) {
 
             <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line);">
               <label style="margin-top:0;">Administrative Reset</label>
-              <button class="btn secondary mini" onclick="adminResetPassword(${d.student.id})">Reset Password to "Student@123"</button>
+              <button class="btn secondary mini" onclick="adminResetPassword(${d.student.id})">Reset Password to Temporary Default</button>
             </div>
           </div>
         </div>
@@ -2930,11 +2819,11 @@ async function saveMarks(e, id) {
 }
 
 async function adminResetPassword(id) {
-  if (!confirm("Reset this student's password to default (Student@123)?")) return;
+  if (!confirm("Reset this student's password to temporary default (ajv@123)?\n\nThey will be forced to change it on their next login.")) return;
   try {
     const d = await api(`/api/staff/students/${id}/reset-password`, {
       method: "POST",
-      body: { password: "Student@123" }
+      body: {}
     });
     toast(d.message);
   } catch (x) {
@@ -3047,13 +2936,14 @@ async function profile() {
               <input id="oldPass" type="password" placeholder="Enter current password" required>
 
               <label>New Password *</label>
-              <input id="newPass" type="password" minlength="6" placeholder="Minimum 6 characters" required>
+              <input id="newPass" type="password" minlength="8" placeholder="Minimum 8 characters" required oninput="renderPasswordStrength('newPass', 'meter-profile')">
+              <div id="meter-profile"></div>
 
               <label>Confirm New Password *</label>
-              <input id="confirmPass" type="password" minlength="6" placeholder="Re-enter new password" required>
+              <input id="confirmPass" type="password" minlength="8" placeholder="Re-enter new password" required>
 
               <div class="notice">
-                Ensure your new password contains at least 6 characters. You can use this new password for future logins.
+                Ensure your new password contains at least 8 characters. You can use this new password for future logins.
               </div>
 
               <button class="btn gold full">Update Password →</button>
@@ -3092,6 +2982,8 @@ async function changePassword(e) {
   const confP = document.getElementById("confirmPass").value;
 
   if (newP !== confP) return toast("New passwords do not match", false);
+  const strength = checkPasswordStrength(newP);
+  if (strength.score < 5) return toast(`Password is too weak (${strength.label}). You must include uppercase, lowercase, numbers, and special characters.`, false);
 
   try {
     const d = await api("/api/auth/change-password", {
@@ -3125,8 +3017,9 @@ function showFirstLoginPasswordModal() {
         <label>Current Temporary Password *</label>
         <input id="firstCurrentPass" type="password" value="ajv@123" required>
 
-        <label>New Password (min 6 characters) *</label>
-        <input id="firstNewPass" type="password" placeholder="Create your new personal password" required minlength="6">
+        <label>New Password (min 8 characters) *</label>
+        <input id="firstNewPass" type="password" placeholder="Create your new personal password" required minlength="8" oninput="renderPasswordStrength('firstNewPass', 'meter-first')">
+        <div id="meter-first"></div>
 
         <label>Confirm New Password *</label>
         <input id="firstConfirmPass" type="password" placeholder="Retype your new personal password" required minlength="6">
@@ -3165,6 +3058,10 @@ async function doFirstPasswordChange(e) {
   }
   if (newPassword === "ajv@123") {
     return toast("Please choose a password different from the temporary default (ajv@123)", false);
+  }
+  const strength = checkPasswordStrength(newPassword);
+  if (strength.score < 5) {
+    return toast(`Password is too weak (${strength.label}). You must include uppercase, lowercase, numbers, and special characters.`, false);
   }
 
   try {
@@ -3522,25 +3419,73 @@ async function executeFeePayment(e, feeId) {
     details = "NetBanking: " + bank;
   }
 
+  // Get amount from UI
+  const amountStr = document.querySelector(".modal-body b[style*='color:#059669']").textContent.replace(/[^0-9]/g, '');
+  const amountInPaise = parseInt(amountStr) * 100 || 100000;
+
   try {
-    const res = await api(`/api/student/fees/${feeId}/pay`, {
+    // 1. Create Order
+    const orderRes = await api("/api/create-order", {
       method: "POST",
-      body: {
-        paymentMode: currentPaymentMethod.toUpperCase(),
-        details: details
-      }
+      body: { amount: amountInPaise, receipt: "fee_" + feeId }
     });
 
-    toast("Fee Payment Successful! Transaction: " + res.transactionId, true);
-    modalDialog.close();
+    var options = {
+      "key": state.config.razorpayKeyId || "rzp_test_TjB5rQ3Gr0vfAv",
+      "amount": orderRes.amount,
+      "currency": orderRes.currency,
+      "name": "AJV College of Engg",
+      "description": "Fee Settlement",
+      "image": "/assets/college-logo.png",
+      "order_id": orderRes.order_id,
+      "handler": async function (response) {
+        try {
+          // 2. Verify Payment
+          await api("/api/verify-payment", {
+            method: "POST",
+            body: {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature
+            }
+          });
 
-    // Refresh view and immediately open official stamped receipt
-    await openStudentFeesView();
-    setTimeout(() => {
-      openOfficialFeeReceipt(feeId);
-    }, 200);
+          // 3. Complete internal fee logic
+          const res = await api(`/api/student/fees/${feeId}/pay`, {
+            method: "POST",
+            body: {
+              paymentMode: currentPaymentMethod.toUpperCase(),
+              details: details + " (RZP Txn: " + response.razorpay_payment_id + ")"
+            }
+          });
+
+          toast("Fee Payment Successful! Transaction: " + res.transactionId, true);
+          modalDialog.close();
+
+          await openStudentFeesView();
+          setTimeout(() => { openOfficialFeeReceipt(feeId); }, 200);
+        } catch (err) {
+          toast(err.message || "Payment Verification Failed", false);
+        }
+      },
+      "prefill": {
+          "name": state.user ? state.user.fullName : "AJV Student",
+          "email": state.user ? state.user.loginId.toLowerCase() + "@ajv.edu" : "student@ajv.edu",
+          "contact": "9999999999"
+      },
+      "theme": { "color": "#081b2f" }
+    };
+
+    if (typeof Razorpay === "undefined") {
+      return toast("Payment Gateway failed to load. Check internet connection.", false);
+    }
+    var rzp = new Razorpay(options);
+    rzp.on('payment.failed', function (response){
+        toast("Payment Failed: " + response.error.description, false);
+    });
+    rzp.open();
   } catch (err) {
-    toast(err.message, false);
+    toast(err.message || "Failed to initialize payment gateway", false);
   }
 }
 
@@ -3557,21 +3502,101 @@ function openPayAllModal(totalDue, pendingCount) {
 
     <form onsubmit="executePayAll(event)">
       <div class="modal-body" style="padding-top:10px;">
-        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;margin-bottom:14px;">
-          <div style="font-size:12px;color:#92400e;">You are clearing all pending items:</div>
-          <b style="font-size:15px;color:#b45309;">${pendingCount} Fee Category Items</b>
-          <div style="font-size:22px;color:#b45309;font-weight:800;margin-top:4px;">Total: ₹${totalDue.toLocaleString('en-IN')}</div>
+        <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="font-size:12px;color:#92400e;">Clearing Items:</div>
+            <b style="font-size:15px;color:#b45309;">${pendingCount} Fee Category Items</b>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:12px;color:#92400e;">Total Payable:</div>
+            <b style="font-size:20px;color:#b45309;">₹${totalDue.toLocaleString('en-IN')}</b>
+          </div>
         </div>
 
-        <label style="font-size:12px;font-weight:600;display:block;margin-bottom:6px;">Select Payment Mode</label>
-        <select id="bulkPayMode" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:6px;margin-bottom:12px;">
-          <option value="UPI">UPI / Instant QR (Fastest)</option>
-          <option value="NETBANKING">Net Banking (SBI / HDFC / Canara / Indian Bank)</option>
-          <option value="CARD">Debit / Credit Card</option>
-        </select>
+        <div class="payment-tabs">
+          <button type="button" id="tab-upi" class="payment-tab-btn active" onclick="selectPaymentMethod('upi')">📱 UPI / QR Code</button>
+          <button type="button" id="tab-card" class="payment-tab-btn" onclick="selectPaymentMethod('card')">💳 Debit / Credit Card</button>
+          <button type="button" id="tab-netbanking" class="payment-tab-btn" onclick="selectPaymentMethod('netbanking')">🏦 Net Banking</button>
+        </div>
 
-        <p class="muted" style="font-size:12px;margin:0;">
-          Upon successful authorization, all individual fee receipts with official college stamps will be generated and made available under your account.
+        <!-- UPI Tab Content -->
+        <div id="pay-view-upi">
+          <div class="upi-qr-box">
+            <div style="margin-bottom:8px;font-size:12px;color:#475569;">Scan QR with any UPI App to Pay</div>
+            <div style="display:inline-block;background:#fff;padding:10px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1);">
+              <svg width="140" height="140" viewBox="0 0 140 140">
+                <rect width="140" height="140" fill="#ffffff"/>
+                <!-- Outer borders -->
+                <rect x="10" y="10" width="40" height="40" fill="none" stroke="#0f172a" stroke-width="6"/>
+                <rect x="20" y="20" width="20" height="20" fill="#0f172a"/>
+                <rect x="90" y="10" width="40" height="40" fill="none" stroke="#0f172a" stroke-width="6"/>
+                <rect x="100" y="20" width="20" height="20" fill="#0f172a"/>
+                <rect x="10" y="90" width="40" height="40" fill="none" stroke="#0f172a" stroke-width="6"/>
+                <rect x="20" y="100" width="20" height="20" fill="#0f172a"/>
+                <!-- QR Dots representation -->
+                <circle cx="70" cy="20" r="4" fill="#0f172a"/>
+                <circle cx="70" cy="40" r="4" fill="#0f172a"/>
+                <circle cx="60" cy="70" r="5" fill="#0f172a"/>
+                <circle cx="80" cy="70" r="5" fill="#0f172a"/>
+                <circle cx="70" cy="90" r="4" fill="#0f172a"/>
+                <circle cx="100" cy="70" r="4" fill="#0f172a"/>
+                <circle cx="120" cy="90" r="5" fill="#0f172a"/>
+                <circle cx="90" cy="110" r="4" fill="#0f172a"/>
+                <circle cx="110" cy="110" r="5" fill="#0f172a"/>
+                <circle cx="120" cy="120" r="4" fill="#0f172a"/>
+                <!-- Center Emblem -->
+                <rect x="58" y="58" width="24" height="24" rx="4" fill="#d97706"/>
+                <text x="70" y="74" fill="#fff" font-size="12" font-weight="bold" text-anchor="middle">AJV</text>
+              </svg>
+            </div>
+            <div style="font-size:12px;color:#0f172a;font-weight:700;margin-top:8px;">UPI ID: <code>ajvcollege.fees@upi</code></div>
+            <div class="upi-apps">
+              <span class="upi-app-pill">GPay</span>
+              <span class="upi-app-pill">PhonePe</span>
+              <span class="upi-app-pill">Paytm</span>
+              <span class="upi-app-pill">BHIM</span>
+            </div>
+          </div>
+          <label style="font-size:12px;font-weight:600;margin-bottom:4px;display:block;">Or enter your VPA / UPI ID</label>
+          <input type="text" id="upiVpaInput" placeholder="e.g. yourname@okhdfcbank" value="student@okhdfcbank">
+        </div>
+
+        <!-- Card Tab Content -->
+        <div id="pay-view-card" style="display:none;">
+          <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Card Number</label>
+          <input type="text" id="cardNumInput" placeholder="4532 •••• •••• 8892" value="4532 9801 2234 8892" maxlength="19">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px;">
+            <div>
+              <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Expiry Date</label>
+              <input type="text" id="cardExpInput" placeholder="MM/YY" value="08/28" maxlength="5">
+            </div>
+            <div>
+              <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">CVV</label>
+              <input type="password" id="cardCvvInput" placeholder="•••" value="782" maxlength="4">
+            </div>
+          </div>
+          <label style="font-size:12px;font-weight:600;display:block;margin-top:8px;margin-bottom:4px;">Cardholder Name</label>
+          <input type="text" id="cardHolderInput" placeholder="Name as printed on card" value="${esc(state.user ? state.user.fullName : 'STUDENT HOLDER')}">
+        </div>
+
+        <!-- Net Banking Tab Content -->
+        <div id="pay-view-netbanking" style="display:none;">
+          <label style="font-size:12px;font-weight:600;display:block;margin-bottom:4px;">Select Your Bank</label>
+          <select id="bankSelectInput" style="width:100%;padding:10px;border:1px solid #cbd5e1;border-radius:6px;margin-bottom:12px;">
+            <option value="State Bank of India">State Bank of India (SBI)</option>
+            <option value="HDFC Bank">HDFC Bank</option>
+            <option value="ICICI Bank">ICICI Bank</option>
+            <option value="Canara Bank">Canara Bank</option>
+            <option value="Indian Bank">Indian Bank</option>
+            <option value="Axis Bank">Axis Bank</option>
+            <option value="Punjab National Bank">Punjab National Bank</option>
+            <option value="Bank of Baroda">Bank of Baroda</option>
+          </select>
+          <p class="muted" style="font-size:11px;">You will be redirected to the college's secure multi-bank gateway server to authenticate.</p>
+        </div>
+
+        <p class="muted" style="font-size:12px;margin-top:14px;text-align:center;">
+          🔒 Upon successful authorization, all individual fee receipts with official college stamps will be generated instantly.
         </p>
       </div>
 
@@ -3586,24 +3611,85 @@ function openPayAllModal(totalDue, pendingCount) {
 
 async function executePayAll(e) {
   e.preventDefault();
-  const mode = document.getElementById("bulkPayMode")?.value || "UPI";
+  let details = "";
+  if (currentPaymentMethod === "upi") {
+    const vpa = document.getElementById("upiVpaInput")?.value || "student@upi";
+    details = "UPI ID: " + vpa;
+  } else if (currentPaymentMethod === "card") {
+    const last4 = (document.getElementById("cardNumInput")?.value || "8892").slice(-4);
+    details = "Card ending in " + last4;
+  } else {
+    const bank = document.getElementById("bankSelectInput")?.value || "State Bank of India";
+    details = "NetBanking: " + bank;
+  }
+
+  // Get amount from UI
+  const amountStr = document.querySelector(".modal-body b[style*='font-size:20px']").textContent.replace(/[^0-9]/g, '');
+  const amountInPaise = parseInt(amountStr) * 100 || 100000;
 
   try {
-    const res = await api("/api/student/fees/pay-all", {
+    // 1. Create Order
+    const orderRes = await api("/api/create-order", {
       method: "POST",
-      body: {
-        paymentMode: mode,
-        details: "Batch Settlement of all pending dues"
-      }
+      body: { amount: amountInPaise, receipt: "bulk_" + Date.now() }
     });
 
-    const count = res.paidCount || res.count || 'all';
-    const total = res.totalPaidAmount || res.totalPaid || '';
-    toast(`Successfully settled ${count} fee items ${total ? `(₹${total.toLocaleString('en-IN')})` : ''}!`, true);
-    modalDialog.close();
-    await openStudentFeesView();
+    var options = {
+      "key": "rzp_test_TjB5rQ3Gr0vfAv",
+      "amount": orderRes.amount,
+      "currency": orderRes.currency,
+      "name": "AJV College of Engg",
+      "description": "Bulk Fee Settlement",
+      "image": "/assets/college-logo.png",
+      "order_id": orderRes.order_id,
+      "handler": async function (response) {
+        try {
+          // 2. Verify Payment
+          await api("/api/verify-payment", {
+            method: "POST",
+            body: {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature
+            }
+          });
+
+          // 3. Complete internal fee logic
+          const res = await api("/api/student/fees/pay-all", {
+            method: "POST",
+            body: {
+              paymentMode: currentPaymentMethod.toUpperCase(),
+              details: "Batch Settlement - " + details + " (RZP: " + response.razorpay_payment_id + ")"
+            }
+          });
+
+          const count = res.paidCount || res.count || 'all';
+          const total = res.totalPaidAmount || res.totalPaid || '';
+          toast(`Successfully settled ${count} fee items ${total ? `(₹${total.toLocaleString('en-IN')})` : ''}!`, true);
+          modalDialog.close();
+          await openStudentFeesView();
+        } catch (err) {
+          toast(err.message || "Payment Verification Failed", false);
+        }
+      },
+      "prefill": {
+          "name": state.user ? state.user.fullName : "AJV Student",
+          "email": state.user ? state.user.loginId.toLowerCase() + "@ajv.edu" : "student@ajv.edu",
+          "contact": "9999999999"
+      },
+      "theme": { "color": "#081b2f" }
+    };
+
+    if (typeof Razorpay === "undefined") {
+      return toast("Payment Gateway failed to load. Check internet connection.", false);
+    }
+    var rzp = new Razorpay(options);
+    rzp.on('payment.failed', function (response){
+        toast("Bulk Payment Failed: " + response.error.description, false);
+    });
+    rzp.open();
   } catch (err) {
-    toast(err.message, false);
+    toast(err.message || "Failed to initialize payment gateway", false);
   }
 }
 
@@ -3905,7 +3991,7 @@ async function viewStudentFeeBreakdown(studentId) {
     String(s.student.loginId).toLowerCase() === String(studentId).toLowerCase()
   );
 
-  if (!item) {
+  if (!item || !item.fees) {
     try {
       const data = await api(`/api/student/fees?studentId=${encodeURIComponent(studentId)}`);
       if (data && data.fees) {
@@ -4885,7 +4971,7 @@ function showPage(p) {
     if (!state.user) login();
     else if (state.user.role === "admin") openPublishResultsCenter();
     else if (state.user.role === "staff") openFacultyResultsView();
-    else studentDashboard();
+    else openStudentResults();
   }
   else if (p === "publish") {
     if (!state.user) login();
@@ -4903,6 +4989,44 @@ function showPage(p) {
       }
     }
   }
+}
+
+// Google-style Password Strength Algorithm
+window.checkPasswordStrength = function(pwd) {
+  if (!pwd) return { score: 0, label: "", color: "transparent" };
+  if (pwd.length < 8) {
+      if (pwd.length < 6) return { score: 1, label: "Too Weak", color: "#ef4444" };
+      return { score: 2, label: "Weak", color: "#f97316" };
+  }
+  let score = 2; // base score for length >= 8
+  let hasUpperLower = /[A-Z]/.test(pwd) && /[a-z]/.test(pwd);
+  let hasNumber = /[0-9]/.test(pwd);
+  let hasSpecial = /[^A-Za-z0-9]/.test(pwd);
+
+  if (hasUpperLower) score++;
+  if (hasNumber) score++;
+  if (hasSpecial) score++;
+  
+  if (score <= 3) return { score: 3, label: "Fair", color: "#eab308" };
+  if (score === 4) return { score: 4, label: "Good", color: "#84cc16" };
+  return { score: 5, label: "Strong", color: "#22c55e" };
+}
+
+window.renderPasswordStrength = function(inputId, meterId) {
+  const el = document.getElementById(inputId);
+  const meter = document.getElementById(meterId);
+  if (!el || !meter) return;
+  const val = el.value;
+  const s = checkPasswordStrength(val);
+  if (!val) {
+    meter.innerHTML = "";
+    return;
+  }
+  const bars = Array.from({length: 5}, (_, i) => `<div style="flex:1;height:4px;border-radius:2px;background:${i < s.score ? s.color : '#e2e8f0'}; transition: background 0.3s;"></div>`).join("");
+  meter.innerHTML = `
+    <div style="display:flex;gap:4px;margin-top:6px;">${bars}</div>
+    <div style="font-size:11px;color:${s.color};margin-top:4px;text-align:right;font-weight:600;">${s.label}</div>
+  `;
 }
 
 layoutNav();

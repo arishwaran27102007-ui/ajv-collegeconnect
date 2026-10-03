@@ -4,14 +4,14 @@
     "version": 3
   },
   "counters": {
-    "student": 7,
+    "student": 9,
     "faculty": 3
   },
   "users": [
     {
       "id": 1,
       "loginId": "ADMIN001",
-      "passwordHash": "$2a$10$qItnXLk4ef.SauR9ljbIge2SoVqmMXj/vtQv5ocNe0/dat1aTw.Pa",
+      "passwordHash": "$2a$10$K3wdih8b4n5q6Ye7gX85Nu4ozrGz/g9skJjmXdk4/Rd4X0Lj6Lu9m",
       "role": "admin",
       "fullName": "AJV Administrator",
       "email": "admin@ajv.edu",
@@ -25,7 +25,7 @@
     {
       "id": 2,
       "loginId": "FAC001",
-      "passwordHash": "$2a$10$wCjtYA/1MAVoQ8BVeQXLJul/HPySCksUa/l8GHxfLt1lBnGDfKfi6",
+      "passwordHash": "$2a$10$K3wdih8b4n5q6Ye7gX85Nu4ozrGz/g9skJjmXdk4/Rd4X0Lj6Lu9m",
       "role": "staff",
       "fullName": "Dr. Priya Faculty",
       "email": "faculty01@ajv.edu",
@@ -54,7 +54,7 @@
       "address": "Coimbatore, Tamil Nadu",
       "cgpa": 9.57,
       "overallPercentage": 90.67,
-      "attendance": 91.83,
+      "attendance": 94.25,
       "status": "active"
     },
     {
@@ -75,7 +75,7 @@
       "address": "Tiruppur, Tamil Nadu",
       "cgpa": 8.78,
       "overallPercentage": 81.67,
-      "attendance": 85.83,
+      "attendance": 93.5,
       "status": "active"
     },
     {
@@ -94,9 +94,9 @@
       "year": "I Year",
       "section": "B",
       "address": "Erode, Tamil Nadu",
-      "cgpa": 10,
-      "overallPercentage": 94.67,
-      "attendance": 94.67,
+      "cgpa": 9,
+      "overallPercentage": 83.33,
+      "attendance": 96.67,
       "status": "active"
     },
     {
@@ -118,7 +118,7 @@
       "status": "active",
       "cgpa": 10,
       "overallPercentage": 94.67,
-      "attendance": 94.17
+      "attendance": 97.83
     },
     {
       "id": 7,
@@ -202,27 +202,6 @@
       "mustChangePassword": false
     },
     {
-      "id": 11,
-      "loginId": "AJVSTU008",
-      "passwordHash": "$2a$10$Gjwiwc4sUzzgdDrKfxlPWuT9aNyqmZ2n7MOgz9ESjT6EMNxdpT9N2",
-      "role": "student",
-      "fullName": "Rahul Verma",
-      "email": "rahul0008@ajv.edu",
-      "phone": "9840011223",
-      "parentName": "M. Verma",
-      "dob": "2005-11-24",
-      "gender": "Male",
-      "registerNo": "AJVSTU008",
-      "department": "Information Technology",
-      "year": "III Year",
-      "section": "A",
-      "address": "Chennai, Tamil Nadu",
-      "cgpa": 9.15,
-      "overallPercentage": 86.4,
-      "attendance": 91.2,
-      "status": "active"
-    },
-    {
       "id": 12,
       "loginId": "AJVSTU009",
       "passwordHash": "$2a$10$Gjwiwc4sUzzgdDrKfxlPWuT9aNyqmZ2n7MOgz9ESjT6EMNxdpT9N2",
@@ -238,10 +217,54 @@
       "year": "IV Year",
       "section": "A",
       "address": "Madurai, Tamil Nadu",
-      "cgpa": 9.42,
-      "overallPercentage": 88.9,
-      "attendance": 93.5,
+      "cgpa": 0,
+      "overallPercentage": 0,
+      "attendance": 0,
       "status": "active"
+    },
+    {
+      "id": 13,
+      "loginId": "AJVSTU008",
+      "passwordHash": "$2a$10$lNVpR2t88b9sos2KoyK0s.6IX2pnU.lB7gHCHBAVdIXc4.XSHbJVW",
+      "role": "student",
+      "fullName": "Arishwaran J",
+      "email": "arishwaranj0008@ajv.edu",
+      "phone": "8825695844",
+      "parentName": "Jeyaraman",
+      "dob": "2007-10-27",
+      "gender": "Male",
+      "registerNo": "AJVSTU008",
+      "department": "Information Technology",
+      "year": "II Year",
+      "section": "A",
+      "address": "SRIT",
+      "status": "active",
+      "cgpa": 0,
+      "overallPercentage": 0,
+      "attendance": 0,
+      "mustChangePassword": false
+    },
+    {
+      "id": 14,
+      "loginId": "AJVSTU009",
+      "passwordHash": "$2a$10$VX6f4YaY2MCsdJZlp5Sbi.g0AFqflGW.zGOUQLwAlKMO07A/8GjRC",
+      "role": "student",
+      "fullName": "Test Student",
+      "email": "teststudent0009@ajv.edu",
+      "phone": "1234567890",
+      "parentName": "Test Parent",
+      "dob": "2000-01-01",
+      "gender": "Male",
+      "registerNo": "AJVSTU009",
+      "department": "Computer Science",
+      "year": "I Year",
+      "section": "A",
+      "address": "Test Address",
+      "status": "active",
+      "cgpa": 0,
+      "overallPercentage": 0,
+      "attendance": 0,
+      "mustChangePassword": true
     }
   ],
   "courses": [
@@ -617,7 +640,7 @@
       "studentId": 3,
       "courseId": 2,
       "semester": 1,
-      "attendance": 89,
+      "attendance": 100,
       "internalMark": 34,
       "externalMark": 51,
       "totalMark": 85,
@@ -630,7 +653,7 @@
       "studentId": 3,
       "courseId": 3,
       "semester": 1,
-      "attendance": 94,
+      "attendance": 100,
       "internalMark": 37,
       "externalMark": 55,
       "totalMark": 92,
@@ -656,7 +679,7 @@
       "studentId": 3,
       "courseId": 5,
       "semester": 1,
-      "attendance": 88,
+      "attendance": 100,
       "internalMark": 35,
       "externalMark": 50,
       "totalMark": 85,
@@ -773,7 +796,7 @@
       "studentId": 4,
       "courseId": 2,
       "semester": 1,
-      "attendance": 88,
+      "attendance": 100,
       "internalMark": 34,
       "externalMark": 50,
       "totalMark": 84,
@@ -786,7 +809,7 @@
       "studentId": 4,
       "courseId": 3,
       "semester": 1,
-      "attendance": 82,
+      "attendance": 100,
       "internalMark": 30,
       "externalMark": 46,
       "totalMark": 76,
@@ -812,7 +835,7 @@
       "studentId": 4,
       "courseId": 5,
       "semester": 1,
-      "attendance": 84,
+      "attendance": 100,
       "internalMark": 31,
       "externalMark": 47,
       "totalMark": 78,
@@ -852,7 +875,7 @@
       "studentId": 6,
       "courseId": 2,
       "semester": 1,
-      "attendance": 92,
+      "attendance": 100,
       "internalMark": 39,
       "externalMark": 58,
       "totalMark": 97,
@@ -866,7 +889,7 @@
       "studentId": 6,
       "courseId": 3,
       "semester": 1,
-      "attendance": 90,
+      "attendance": 100,
       "internalMark": 37,
       "externalMark": 54,
       "totalMark": 91,
@@ -894,7 +917,7 @@
       "studentId": 6,
       "courseId": 5,
       "semester": 1,
-      "attendance": 96,
+      "attendance": 100,
       "internalMark": 39,
       "externalMark": 57,
       "totalMark": 96,
@@ -916,6 +939,48 @@
       "grade": "O",
       "gradePoint": 10,
       "updatedAt": "2026-10-02T04:12:27.992Z"
+    },
+    {
+      "id": 25,
+      "studentId": 5,
+      "courseId": 1,
+      "semester": 1,
+      "attendance": 90,
+      "internalMark": 32,
+      "externalMark": 50,
+      "totalMark": 82,
+      "percentage": 82,
+      "grade": "A+",
+      "gradePoint": 9,
+      "updatedAt": "2026-10-02T10:06:38.369Z"
+    },
+    {
+      "id": 26,
+      "studentId": 5,
+      "courseId": 3,
+      "semester": 1,
+      "attendance": 100,
+      "internalMark": 32.5,
+      "externalMark": 48.5,
+      "totalMark": 81,
+      "percentage": 81,
+      "grade": "A+",
+      "gradePoint": 9,
+      "updatedAt": "2026-10-02T10:07:07.141Z"
+    },
+    {
+      "id": 27,
+      "studentId": 5,
+      "courseId": 6,
+      "semester": 1,
+      "attendance": 100,
+      "internalMark": 35,
+      "externalMark": 52,
+      "totalMark": 87,
+      "percentage": 87,
+      "grade": "A+",
+      "gradePoint": 9,
+      "updatedAt": "2026-10-02T10:07:39.944Z"
     }
   ],
   "announcements": [
@@ -1002,19 +1067,32 @@
       "title": "Official Results Published: II Year (Semesters 3 & 4)",
       "body": "The Controller of Examinations has officially released the II Year semester examination results. All students can now inspect semester marks and print sealed official marksheets.",
       "createdAt": "2026-10-02T05:09:53.326Z"
+    },
+    {
+      "id": 15,
+      "title": "Official Results Published: I Year (Semesters 1 & 2)",
+      "body": "The Controller of Examinations has officially released the I Year semester examination results. All students can now inspect semester marks and print sealed official marksheets.",
+      "createdAt": "2026-10-02T21:42:36.099Z"
+    },
+    {
+      "id": 16,
+      "title": "Official Result Published: Semester 1",
+      "body": "The Controller of Examinations has officially released the Semester 1 examination results. Students and faculty can now view semester statements of grades and download verified marksheets with the official institutional seal.",
+      "createdAt": "2026-10-02T22:24:10.618Z"
     }
   ],
   "resultsPublication": {
     "1": {
       "isPublished": true,
-      "publishedAt": "2026-09-15T10:00:00.000Z",
-      "publishedBy": "AJV Controller of Examinations"
+      "publishedAt": "2026-10-02T21:42:36.096Z",
+      "publishedBy": "AJV Administrator",
+      "sessionName": "April / May 2026 End Semester Examinations"
     },
     "2": {
       "isPublished": true,
-      "publishedAt": "2026-10-02T05:09:53.310Z",
+      "publishedAt": "2026-10-02T21:42:36.097Z",
       "publishedBy": "AJV Administrator",
-      "sessionName": "April / May 2026 Autonomous Session"
+      "sessionName": "April / May 2026 End Semester Examinations"
     },
     "3": {
       "isPublished": false,
@@ -1029,24 +1107,36 @@
       "sessionName": "April / May 2026 End Semester Examinations"
     },
     "5": {
-      "isPublished": true,
-      "publishedAt": "2026-10-02T04:20:10.758Z",
-      "publishedBy": "AJV Administrator"
+      "isPublished": false,
+      "publishedAt": null,
+      "publishedBy": null,
+      "sessionName": "April / May 2026 End Semester Examinations"
     },
     "6": {
-      "isPublished": true,
-      "publishedAt": "2026-10-02T04:20:13.284Z",
-      "publishedBy": "AJV Administrator"
+      "isPublished": false,
+      "publishedAt": null,
+      "publishedBy": null,
+      "sessionName": "April / May 2026 End Semester Examinations"
     },
     "7": {
-      "isPublished": true,
-      "publishedAt": "2026-10-02T04:20:18.369Z",
-      "publishedBy": "AJV Administrator"
+      "isPublished": false,
+      "publishedAt": null,
+      "publishedBy": null,
+      "sessionName": "April / May 2026 End Semester Examinations"
     },
     "8": {
+      "isPublished": false,
+      "publishedAt": null,
+      "publishedBy": null,
+      "sessionName": "April / May 2026 End Semester Examinations"
+    },
+    "1_Information Technology_ALL": {
       "isPublished": true,
-      "publishedAt": "2026-10-02T04:20:21.158Z",
-      "publishedBy": "AJV Administrator"
+      "publishedAt": "2026-10-02T22:24:10.615Z",
+      "publishedBy": "AJV Administrator",
+      "sessionName": "April / May 2026 End Semester Examinations",
+      "department": "Information Technology",
+      "year": "ALL"
     }
   },
   "fees": [
@@ -1973,13 +2063,13 @@
       "semester": 2,
       "academicYear": "2025-2026",
       "amount": 45000,
-      "paidAmount": 0,
-      "status": "DUE",
+      "paidAmount": 45000,
+      "status": "PAID",
       "dueDate": "2026-02-15",
-      "paidAt": null,
-      "paymentMethod": null,
-      "transactionId": null,
-      "receiptNo": null
+      "paidAt": "2026-10-02T10:03:57.940Z",
+      "paymentMethod": "UPI (Consolidated)",
+      "transactionId": "AJV-BATCH-MUQSPW1G-58",
+      "receiptNo": "AJV/FEE/2026/0011-58"
     },
     {
       "id": 59,
@@ -2005,13 +2095,13 @@
       "semester": 2,
       "academicYear": "2025-2026",
       "amount": 2200,
-      "paidAmount": 0,
-      "status": "DUE",
+      "paidAmount": 2200,
+      "status": "PAID",
       "dueDate": "2026-03-25",
-      "paidAt": null,
-      "paymentMethod": null,
-      "transactionId": null,
-      "receiptNo": null
+      "paidAt": "2026-10-02T10:03:57.940Z",
+      "paymentMethod": "UPI (Consolidated)",
+      "transactionId": "AJV-BATCH-MUQSPW1G-60",
+      "receiptNo": "AJV/FEE/2026/0011-60"
     },
     {
       "id": 61,
@@ -2021,13 +2111,13 @@
       "semester": 2,
       "academicYear": "2025-2026",
       "amount": 38000,
-      "paidAmount": 0,
-      "status": "DUE",
+      "paidAmount": 38000,
+      "status": "PAID",
       "dueDate": "2026-03-10",
-      "paidAt": null,
-      "paymentMethod": null,
-      "transactionId": null,
-      "receiptNo": null
+      "paidAt": "2026-10-02T10:03:57.940Z",
+      "paymentMethod": "UPI (Consolidated)",
+      "transactionId": "AJV-BATCH-MUQSPW1G-61",
+      "receiptNo": "AJV/FEE/2026/0011-61"
     },
     {
       "id": 62,
@@ -2069,13 +2159,13 @@
       "semester": 2,
       "academicYear": "2025-2026",
       "amount": 6500,
-      "paidAmount": 0,
-      "status": "DUE",
+      "paidAmount": 6500,
+      "status": "PAID",
       "dueDate": "2026-04-15",
-      "paidAt": null,
-      "paymentMethod": null,
-      "transactionId": null,
-      "receiptNo": null
+      "paidAt": "2026-10-02T10:03:57.940Z",
+      "paymentMethod": "UPI (Consolidated)",
+      "transactionId": "AJV-BATCH-MUQSPW1G-64",
+      "receiptNo": "AJV/FEE/2026/0011-64"
     },
     {
       "id": 65,
@@ -2204,26 +2294,282 @@
       "paymentMethod": null,
       "transactionId": null,
       "receiptNo": null
+    },
+    {
+      "id": 73,
+      "studentId": 13,
+      "category": "Tuition Fee",
+      "title": "Semester 1 Tuition & Academic Instructional Fee",
+      "semester": 1,
+      "academicYear": "2025-2026",
+      "amount": 45000,
+      "paidAmount": 45000,
+      "status": "PAID",
+      "dueDate": "2025-08-30",
+      "paidAt": "2025-08-20T10:30:00.000Z",
+      "paymentMethod": "UPI (Google Pay)",
+      "transactionId": "AJV-TXN-13-001",
+      "receiptNo": "AJV/FEE/2025/0131"
+    },
+    {
+      "id": 74,
+      "studentId": 13,
+      "category": "Tuition Fee",
+      "title": "Semester 2 Tuition & Academic Instructional Fee",
+      "semester": 2,
+      "academicYear": "2025-2026",
+      "amount": 45000,
+      "paidAmount": 45000,
+      "status": "PAID",
+      "dueDate": "2026-02-15",
+      "paidAt": "2026-10-02T21:05:21.514Z",
+      "paymentMethod": "UPI (Consolidated)",
+      "transactionId": "AJV-BATCH-MURGCG2Y-74",
+      "receiptNo": "AJV/FEE/2026/0013-74"
+    },
+    {
+      "id": 75,
+      "studentId": 13,
+      "category": "Examination Fee",
+      "title": "Semester 1 Autonomous Examination & Grade Card Fee",
+      "semester": 1,
+      "academicYear": "2025-2026",
+      "amount": 2200,
+      "paidAmount": 2200,
+      "status": "PAID",
+      "dueDate": "2025-10-15",
+      "paidAt": "2025-10-10T14:45:00.000Z",
+      "paymentMethod": "UPI (PhonePe)",
+      "transactionId": "AJV-TXN-13-003",
+      "receiptNo": "AJV/FEE/2025/0133"
+    },
+    {
+      "id": 76,
+      "studentId": 13,
+      "category": "Examination Fee",
+      "title": "Semester 2 Autonomous Examination & Marksheet Fee",
+      "semester": 2,
+      "academicYear": "2025-2026",
+      "amount": 2200,
+      "paidAmount": 2200,
+      "status": "PAID",
+      "dueDate": "2026-03-25",
+      "paidAt": "2026-10-02T21:05:21.514Z",
+      "paymentMethod": "UPI (Consolidated)",
+      "transactionId": "AJV-BATCH-MURGCG2Y-76",
+      "receiptNo": "AJV/FEE/2026/0013-76"
+    },
+    {
+      "id": 77,
+      "studentId": 13,
+      "category": "Hostel & Mess Fee",
+      "title": "Hostel Accommodation, Dining & Facility Charges (Term II)",
+      "semester": 2,
+      "academicYear": "2025-2026",
+      "amount": 38000,
+      "paidAmount": 38000,
+      "status": "PAID",
+      "dueDate": "2026-03-10",
+      "paidAt": "2026-10-02T21:05:21.514Z",
+      "paymentMethod": "UPI (Consolidated)",
+      "transactionId": "AJV-BATCH-MURGCG2Y-77",
+      "receiptNo": "AJV/FEE/2026/0013-77"
+    },
+    {
+      "id": 78,
+      "studentId": 13,
+      "category": "Campus Transport / Bus Fee",
+      "title": "Annual College Bus Transportation Route Pass",
+      "semester": 1,
+      "academicYear": "2025-2026",
+      "amount": 14000,
+      "paidAmount": 14000,
+      "status": "PAID",
+      "dueDate": "2025-08-30",
+      "paidAt": "2025-08-22T09:15:00.000Z",
+      "paymentMethod": "UPI (Paytm)",
+      "transactionId": "AJV-TXN-13-004",
+      "receiptNo": "AJV/FEE/2025/0134"
+    },
+    {
+      "id": 79,
+      "studentId": 13,
+      "category": "Laboratory & Caution Deposit",
+      "title": "Institutional Research Lab & Library Caution Deposit",
+      "semester": 1,
+      "academicYear": "2025-2026",
+      "amount": 5000,
+      "paidAmount": 5000,
+      "status": "PAID",
+      "dueDate": "2025-08-20",
+      "paidAt": "2025-08-18T16:00:00.000Z",
+      "paymentMethod": "Debit Card (HDFC)",
+      "transactionId": "AJV-TXN-13-005",
+      "receiptNo": "AJV/FEE/2025/0135"
+    },
+    {
+      "id": 80,
+      "studentId": 13,
+      "category": "Placement & Skill Training",
+      "title": "Placement Readiness, Coding Bootcamp & Skill Development",
+      "semester": 2,
+      "academicYear": "2025-2026",
+      "amount": 6500,
+      "paidAmount": 6500,
+      "status": "PAID",
+      "dueDate": "2026-04-15",
+      "paidAt": "2026-10-02T21:05:21.514Z",
+      "paymentMethod": "UPI (Consolidated)",
+      "transactionId": "AJV-BATCH-MURGCG2Y-80",
+      "receiptNo": "AJV/FEE/2026/0013-80"
+    },
+    {
+      "id": 81,
+      "studentId": 14,
+      "category": "Tuition Fee",
+      "title": "Semester 1 Tuition & Academic Instructional Fee",
+      "semester": 1,
+      "academicYear": "2025-2026",
+      "amount": 45000,
+      "paidAmount": 45000,
+      "status": "PAID",
+      "dueDate": "2025-08-30",
+      "paidAt": "2025-08-20T10:30:00.000Z",
+      "paymentMethod": "UPI (Google Pay)",
+      "transactionId": "AJV-TXN-14-001",
+      "receiptNo": "AJV/FEE/2025/0141"
+    },
+    {
+      "id": 82,
+      "studentId": 14,
+      "category": "Tuition Fee",
+      "title": "Semester 2 Tuition & Academic Instructional Fee",
+      "semester": 2,
+      "academicYear": "2025-2026",
+      "amount": 45000,
+      "paidAmount": 0,
+      "status": "DUE",
+      "dueDate": "2026-02-15",
+      "paidAt": null,
+      "paymentMethod": null,
+      "transactionId": null,
+      "receiptNo": null
+    },
+    {
+      "id": 83,
+      "studentId": 14,
+      "category": "Examination Fee",
+      "title": "Semester 1 Autonomous Examination & Grade Card Fee",
+      "semester": 1,
+      "academicYear": "2025-2026",
+      "amount": 2200,
+      "paidAmount": 2200,
+      "status": "PAID",
+      "dueDate": "2025-10-15",
+      "paidAt": "2025-10-10T14:45:00.000Z",
+      "paymentMethod": "UPI (PhonePe)",
+      "transactionId": "AJV-TXN-14-003",
+      "receiptNo": "AJV/FEE/2025/0143"
+    },
+    {
+      "id": 84,
+      "studentId": 14,
+      "category": "Examination Fee",
+      "title": "Semester 2 Autonomous Examination & Marksheet Fee",
+      "semester": 2,
+      "academicYear": "2025-2026",
+      "amount": 2200,
+      "paidAmount": 0,
+      "status": "DUE",
+      "dueDate": "2026-03-25",
+      "paidAt": null,
+      "paymentMethod": null,
+      "transactionId": null,
+      "receiptNo": null
+    },
+    {
+      "id": 85,
+      "studentId": 14,
+      "category": "Hostel & Mess Fee",
+      "title": "Hostel Accommodation, Dining & Facility Charges (Term II)",
+      "semester": 2,
+      "academicYear": "2025-2026",
+      "amount": 38000,
+      "paidAmount": 0,
+      "status": "DUE",
+      "dueDate": "2026-03-10",
+      "paidAt": null,
+      "paymentMethod": null,
+      "transactionId": null,
+      "receiptNo": null
+    },
+    {
+      "id": 86,
+      "studentId": 14,
+      "category": "Campus Transport / Bus Fee",
+      "title": "Annual College Bus Transportation Route Pass",
+      "semester": 1,
+      "academicYear": "2025-2026",
+      "amount": 14000,
+      "paidAmount": 14000,
+      "status": "PAID",
+      "dueDate": "2025-08-30",
+      "paidAt": "2025-08-22T09:15:00.000Z",
+      "paymentMethod": "UPI (Paytm)",
+      "transactionId": "AJV-TXN-14-004",
+      "receiptNo": "AJV/FEE/2025/0144"
+    },
+    {
+      "id": 87,
+      "studentId": 14,
+      "category": "Laboratory & Caution Deposit",
+      "title": "Institutional Research Lab & Library Caution Deposit",
+      "semester": 1,
+      "academicYear": "2025-2026",
+      "amount": 5000,
+      "paidAmount": 5000,
+      "status": "PAID",
+      "dueDate": "2025-08-20",
+      "paidAt": "2025-08-18T16:00:00.000Z",
+      "paymentMethod": "Debit Card (HDFC)",
+      "transactionId": "AJV-TXN-14-005",
+      "receiptNo": "AJV/FEE/2025/0145"
+    },
+    {
+      "id": 88,
+      "studentId": 14,
+      "category": "Placement & Skill Training",
+      "title": "Placement Readiness, Coding Bootcamp & Skill Development",
+      "semester": 2,
+      "academicYear": "2025-2026",
+      "amount": 6500,
+      "paidAmount": 0,
+      "status": "DUE",
+      "dueDate": "2026-04-15",
+      "paidAt": null,
+      "paymentMethod": null,
+      "transactionId": null,
+      "receiptNo": null
     }
   ],
   "grievances": [
     {
-      "id": 1,
-      "ticketNo": "GRV-2026-001",
+      "id": 3,
+      "ticketNo": "GRV-2026-003",
       "studentId": 3,
       "studentName": "Ananya Kumar",
       "registerNo": "AJVSTU001",
       "department": "Information Technology",
       "year": "I Year",
-      "category": "Academic / Revaluation",
+      "category": "Hostel & Transport",
       "priority": "Normal",
-      "subject": "Request for Engineering Physics (PH3151) Answer Sheet Photocopy",
-      "description": "I scored 90 in external evaluation but was expecting 95+. Kindly grant a photocopy of the valued answer script for review with my course faculty.",
-      "status": "In Review",
-      "responseNote": "Application forwarded to Controller of Examinations. Verification in progress.",
-      "respondedBy": "Dr. Priya Faculty (FAC001)",
-      "createdAt": "2026-09-22T09:30:00.000Z",
-      "updatedAt": "2026-09-23T14:15:00.000Z"
+      "subject": "College Route 12 Bus Pass Renewal",
+      "description": "Requesting renewal of College Route 12 (Gandhipuram to Campus) smart bus transit pass for odd semester.",
+      "status": "Open",
+      "responseNote": null,
+      "respondedBy": null,
+      "createdAt": "2026-10-01T08:45:00.000Z",
+      "updatedAt": "2026-10-01T08:45:00.000Z"
     },
     {
       "id": 2,
@@ -2244,22 +2590,22 @@
       "updatedAt": "2026-09-25T16:20:00.000Z"
     },
     {
-      "id": 3,
-      "ticketNo": "GRV-2026-003",
+      "id": 1,
+      "ticketNo": "GRV-2026-001",
       "studentId": 3,
       "studentName": "Ananya Kumar",
       "registerNo": "AJVSTU001",
       "department": "Information Technology",
       "year": "I Year",
-      "category": "Hostel & Transport",
+      "category": "Academic / Revaluation",
       "priority": "Normal",
-      "subject": "College Route 12 Bus Pass Renewal",
-      "description": "Requesting renewal of College Route 12 (Gandhipuram to Campus) smart bus transit pass for odd semester.",
-      "status": "Open",
-      "responseNote": null,
-      "respondedBy": null,
-      "createdAt": "2026-10-01T08:45:00.000Z",
-      "updatedAt": "2026-10-01T08:45:00.000Z"
+      "subject": "Request for Engineering Physics (PH3151) Answer Sheet Photocopy",
+      "description": "I scored 90 in external evaluation but was expecting 95+. Kindly grant a photocopy of the valued answer script for review with my course faculty.",
+      "status": "In Review",
+      "responseNote": "Application forwarded to Controller of Examinations. Verification in progress.",
+      "respondedBy": "Dr. Priya Faculty (FAC001)",
+      "createdAt": "2026-09-22T09:30:00.000Z",
+      "updatedAt": "2026-09-23T14:15:00.000Z"
     }
   ],
   "attendanceLogs": [
@@ -2305,6 +2651,438 @@
         }
       ],
       "createdAt": "2026-10-02T09:15:08.669Z"
+    },
+    {
+      "id": 3,
+      "date": "2026-10-02",
+      "department": "Information Technology",
+      "year": "II Year",
+      "semester": 1,
+      "courseCode": "PH3151",
+      "courseName": "Engineering Physics",
+      "facultyId": 2,
+      "facultyName": "FAC001",
+      "records": [
+        {
+          "studentId": 3,
+          "status": "OD"
+        },
+        {
+          "studentId": 4,
+          "status": "P"
+        },
+        {
+          "studentId": 5,
+          "status": "P"
+        },
+        {
+          "studentId": 6,
+          "status": "P"
+        },
+        {
+          "studentId": 7,
+          "status": "P"
+        },
+        {
+          "studentId": 8,
+          "status": "P"
+        },
+        {
+          "studentId": 10,
+          "status": "P"
+        },
+        {
+          "studentId": 11,
+          "status": "P"
+        },
+        {
+          "studentId": 13,
+          "status": "OD"
+        },
+        {
+          "studentId": 12,
+          "status": "P"
+        }
+      ],
+      "createdAt": "2026-10-02T10:03:15.412Z"
+    },
+    {
+      "id": 4,
+      "date": "2026-10-02",
+      "department": "Information Technology",
+      "year": "I Year",
+      "semester": 1,
+      "courseCode": "PH3151",
+      "courseName": "Engineering Physics",
+      "facultyId": 2,
+      "facultyName": "FAC001",
+      "records": [
+        {
+          "studentId": 3,
+          "status": "P"
+        },
+        {
+          "studentId": 4,
+          "status": "P"
+        },
+        {
+          "studentId": 5,
+          "status": "P"
+        },
+        {
+          "studentId": 6,
+          "status": "P"
+        },
+        {
+          "studentId": 7,
+          "status": "P"
+        },
+        {
+          "studentId": 8,
+          "status": "P"
+        },
+        {
+          "studentId": 10,
+          "status": "P"
+        },
+        {
+          "studentId": 13,
+          "status": "P"
+        },
+        {
+          "studentId": 12,
+          "status": "P"
+        },
+        {
+          "studentId": 14,
+          "status": "P"
+        }
+      ],
+      "createdAt": "2026-10-02T21:49:24.347Z"
+    },
+    {
+      "id": 5,
+      "date": "2026-10-02",
+      "department": "Information Technology",
+      "year": "I Year",
+      "semester": 1,
+      "courseCode": "MA3151",
+      "courseName": "Matrices and Calculus",
+      "facultyId": 2,
+      "facultyName": "FAC001",
+      "records": [
+        {
+          "studentId": 3,
+          "status": "P"
+        },
+        {
+          "studentId": 4,
+          "status": "P"
+        },
+        {
+          "studentId": 5,
+          "status": "P"
+        },
+        {
+          "studentId": 6,
+          "status": "P"
+        },
+        {
+          "studentId": 7,
+          "status": "P"
+        },
+        {
+          "studentId": 8,
+          "status": "P"
+        },
+        {
+          "studentId": 10,
+          "status": "P"
+        },
+        {
+          "studentId": 13,
+          "status": "P"
+        },
+        {
+          "studentId": 12,
+          "status": "P"
+        },
+        {
+          "studentId": 14,
+          "status": "P"
+        }
+      ],
+      "createdAt": "2026-10-02T21:49:32.564Z"
+    },
+    {
+      "id": 6,
+      "date": "2026-10-02",
+      "department": "Information Technology",
+      "year": "I Year",
+      "semester": 1,
+      "courseCode": "GE3151",
+      "courseName": "Python Programming",
+      "facultyId": 2,
+      "facultyName": "FAC001",
+      "records": [
+        {
+          "studentId": 3,
+          "status": "P"
+        },
+        {
+          "studentId": 4,
+          "status": "P"
+        },
+        {
+          "studentId": 5,
+          "status": "P"
+        },
+        {
+          "studentId": 6,
+          "status": "P"
+        },
+        {
+          "studentId": 7,
+          "status": "P"
+        },
+        {
+          "studentId": 8,
+          "status": "P"
+        },
+        {
+          "studentId": 10,
+          "status": "P"
+        },
+        {
+          "studentId": 13,
+          "status": "P"
+        },
+        {
+          "studentId": 12,
+          "status": "P"
+        },
+        {
+          "studentId": 14,
+          "status": "P"
+        }
+      ],
+      "createdAt": "2026-10-02T21:49:36.803Z"
+    },
+    {
+      "id": 7,
+      "date": "2026-10-02",
+      "department": "Information Technology",
+      "year": "I Year",
+      "semester": 3,
+      "courseCode": "CS3351",
+      "courseName": "Digital Principles & Computer Org",
+      "facultyId": 2,
+      "facultyName": "FAC001",
+      "records": [
+        {
+          "studentId": 3,
+          "status": "P"
+        },
+        {
+          "studentId": 4,
+          "status": "P"
+        },
+        {
+          "studentId": 5,
+          "status": "P"
+        },
+        {
+          "studentId": 6,
+          "status": "P"
+        },
+        {
+          "studentId": 7,
+          "status": "P"
+        },
+        {
+          "studentId": 8,
+          "status": "P"
+        },
+        {
+          "studentId": 10,
+          "status": "P"
+        },
+        {
+          "studentId": 13,
+          "status": "P"
+        },
+        {
+          "studentId": 12,
+          "status": "P"
+        },
+        {
+          "studentId": 14,
+          "status": "P"
+        }
+      ],
+      "createdAt": "2026-10-02T21:49:41.238Z"
+    },
+    {
+      "id": 8,
+      "date": "2026-10-02",
+      "department": "Information Technology",
+      "year": "I Year",
+      "semester": 3,
+      "courseCode": "CS3301",
+      "courseName": "Data Structures",
+      "facultyId": 2,
+      "facultyName": "FAC001",
+      "records": [
+        {
+          "studentId": 3,
+          "status": "P"
+        },
+        {
+          "studentId": 4,
+          "status": "P"
+        },
+        {
+          "studentId": 5,
+          "status": "P"
+        },
+        {
+          "studentId": 6,
+          "status": "P"
+        },
+        {
+          "studentId": 7,
+          "status": "P"
+        },
+        {
+          "studentId": 8,
+          "status": "P"
+        },
+        {
+          "studentId": 10,
+          "status": "P"
+        },
+        {
+          "studentId": 13,
+          "status": "P"
+        },
+        {
+          "studentId": 12,
+          "status": "P"
+        },
+        {
+          "studentId": 14,
+          "status": "P"
+        }
+      ],
+      "createdAt": "2026-10-02T21:49:47.265Z"
+    },
+    {
+      "id": 9,
+      "date": "2026-10-02",
+      "department": "Information Technology",
+      "year": "I Year",
+      "semester": 5,
+      "courseCode": "CS3591",
+      "courseName": "Computer Networks",
+      "facultyId": 2,
+      "facultyName": "FAC001",
+      "records": [
+        {
+          "studentId": 3,
+          "status": "P"
+        },
+        {
+          "studentId": 4,
+          "status": "P"
+        },
+        {
+          "studentId": 5,
+          "status": "P"
+        },
+        {
+          "studentId": 6,
+          "status": "P"
+        },
+        {
+          "studentId": 7,
+          "status": "P"
+        },
+        {
+          "studentId": 8,
+          "status": "P"
+        },
+        {
+          "studentId": 10,
+          "status": "P"
+        },
+        {
+          "studentId": 13,
+          "status": "P"
+        },
+        {
+          "studentId": 12,
+          "status": "P"
+        },
+        {
+          "studentId": 14,
+          "status": "P"
+        }
+      ],
+      "createdAt": "2026-10-02T21:49:51.326Z"
+    },
+    {
+      "id": 10,
+      "date": "2026-10-02",
+      "department": "Information Technology",
+      "year": "I Year",
+      "semester": 7,
+      "courseCode": "IT3701",
+      "courseName": "Cryptography & Cyber Security",
+      "facultyId": 2,
+      "facultyName": "FAC001",
+      "records": [
+        {
+          "studentId": 3,
+          "status": "P"
+        },
+        {
+          "studentId": 4,
+          "status": "P"
+        },
+        {
+          "studentId": 5,
+          "status": "P"
+        },
+        {
+          "studentId": 6,
+          "status": "P"
+        },
+        {
+          "studentId": 7,
+          "status": "P"
+        },
+        {
+          "studentId": 8,
+          "status": "P"
+        },
+        {
+          "studentId": 10,
+          "status": "P"
+        },
+        {
+          "studentId": 13,
+          "status": "P"
+        },
+        {
+          "studentId": 12,
+          "status": "P"
+        },
+        {
+          "studentId": 14,
+          "status": "P"
+        }
+      ],
+      "createdAt": "2026-10-02T21:49:54.744Z"
     }
   ]
 }

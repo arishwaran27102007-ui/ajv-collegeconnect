@@ -699,7 +699,7 @@ async function getPublishedSemesters() {
       const res = await pool.query("SELECT * FROM results_publication ORDER BY semester ASC");
       const map = {};
       res.rows.forEach(r => {
-        map[String(r.semester)] = { isPublished: Boolean(r.is_published), publishedAt: r.published_at, publishedBy: r.published_by };
+        map[`${r.semester}_ALL_ALL`] = { isPublished: Boolean(r.is_published), publishedAt: r.published_at, publishedBy: r.published_by, department: "ALL", year: "ALL" };
       });
       return map;
     } catch {
@@ -709,46 +709,59 @@ async function getPublishedSemesters() {
   return jsonDb.resultsPublication || {};
 }
 
-async function isSemesterPublished(semester) {
-  const s = String(semester);
+async function isSemesterPublished(semester, studentDepartment = "ALL", studentYear = "ALL") {
+  const numS = Number(semester);
   if (dbMode === "postgres") {
     try {
-      const res = await pool.query("SELECT is_published FROM results_publication WHERE semester = $1", [Number(s)]);
-      return res.rows[0] ? Boolean(res.rows[0].is_published) : false;
-    } catch {
-      return false;
-    }
+      const res = await pool.query("SELECT is_published FROM results_publication WHERE semester = $1", [numS]);
+      if (res.rows[0] && Boolean(res.rows[0].is_published)) return true;
+    } catch {}
   }
-  const pub = jsonDb.resultsPublication && jsonDb.resultsPublication[s];
-  return pub ? Boolean(pub.isPublished) : false;
+  
+  const pub = jsonDb.resultsPublication || {};
+  if (pub[`${numS}_ALL_ALL`] && pub[`${numS}_ALL_ALL`].isPublished) return true;
+  if (pub[`${numS}_${studentDepartment}_ALL`] && pub[`${numS}_${studentDepartment}_ALL`].isPublished) return true;
+  if (pub[`${numS}_ALL_${studentYear}`] && pub[`${numS}_ALL_${studentYear}`].isPublished) return true;
+  if (pub[`${numS}_${studentDepartment}_${studentYear}`] && pub[`${numS}_${studentDepartment}_${studentYear}`].isPublished) return true;
+
+  return false;
 }
 
-async function setSemesterPublishStatus(semester, isPublished, publishedBy = "AJV Controller of Examinations", sessionName = null) {
-  const s = String(semester);
+async function setSemesterPublishStatus(semester, isPublished, department = "ALL", year = "ALL", publishedBy = "AJV Controller of Examinations", sessionName = null) {
   const numS = Number(semester);
+  const pubKey = `${numS}_${department}_${year}`;
   const pubAt = isPublished ? new Date().toISOString() : null;
   const pubBy = isPublished ? publishedBy : null;
   const session = sessionName || "April / May 2026 End Semester Examinations";
 
-  if (dbMode === "postgres") {
-    await pool.query(`
-      INSERT INTO results_publication (semester, is_published, published_at, published_by)
-      VALUES ($1, $2, $3, $4)
-      ON CONFLICT (semester) DO UPDATE
-      SET is_published = $2, published_at = $3, published_by = $4
-    `, [numS, isPublished, pubAt, pubBy]);
-    return { semester: numS, isPublished: Boolean(isPublished), publishedAt: pubAt, publishedBy: pubBy, sessionName: session };
+  if (dbMode === "postgres" && department === "ALL" && year === "ALL") {
+    try {
+      await pool.query(`
+        INSERT INTO results_publication (semester, is_published, published_at, published_by)
+        VALUES ($1, $2, $3, $4)
+        ON CONFLICT (semester) DO UPDATE
+        SET is_published = $2, published_at = $3, published_by = $4
+      `, [numS, isPublished, pubAt, pubBy]);
+    } catch (e) {}
   }
 
   if (!jsonDb.resultsPublication) jsonDb.resultsPublication = {};
-  jsonDb.resultsPublication[s] = {
-    isPublished: Boolean(isPublished),
-    publishedAt: pubAt,
-    publishedBy: pubBy,
-    sessionName: session
-  };
+  
+  if (isPublished) {
+    jsonDb.resultsPublication[pubKey] = {
+      isPublished: true,
+      publishedAt: pubAt,
+      publishedBy: pubBy,
+      sessionName: session,
+      department,
+      year
+    };
+  } else {
+    delete jsonDb.resultsPublication[pubKey];
+  }
+  
   saveJsonDb();
-  return { semester: numS, isPublished: Boolean(isPublished), publishedAt: pubAt, publishedBy: pubBy, sessionName: session };
+  return { semester: numS, isPublished, department, year, publishedAt: pubAt, publishedBy: pubBy, sessionName: session };
 }
 
 async function getAllSemestersAnalytics() {
@@ -821,7 +834,7 @@ async function getSemesterBroadsheet(semester) {
   const sem = Number(semester);
   const courses = await getCourses(sem);
   const students = (await listStudents()).filter(s => s.status === "active");
-  const published = await isSemesterPublished(sem);
+  const published = await isSemesterPublished(sem, "ALL", "ALL");
   const pubStatus = (await getPublishedSemesters())[String(sem)] || {};
 
   const rows = [];
@@ -875,7 +888,7 @@ async function getSemesterResult(studentId, semester) {
   const student = await findUserById(sId);
   if (!student) return null;
 
-  const isPublished = await isSemesterPublished(sem);
+  const isPublished = await isSemesterPublished(sem, student.department, student.year);
   const allPub = await getPublishedSemesters();
   const pubStatus = allPub[String(sem)] || {};
 

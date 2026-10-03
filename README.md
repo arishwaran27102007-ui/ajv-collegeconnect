@@ -2,6 +2,8 @@
 
 A modern, full-stack academic portal built with **Node.js, Express, PostgreSQL / Persistent JSON, Vanilla HTML5/CSS3/JS, Docker, and Android**.
 
+> **Note:** Yes, this project is **completely containerised by Docker**. You can run the entire stack seamlessly using Docker Compose.
+
 ---
 
 ## 🌟 Key Features & Enhancements
@@ -29,26 +31,45 @@ A modern, full-stack academic portal built with **Node.js, Express, PostgreSQL /
   - Desktop & Mobile Web SPA.
   - Progressive Web App (PWA) with offline shell caching.
   - Native Android app scaffolding (`android/`) ready for Android Studio.
+- **Enterprise-Grade Security Features**:
+  - **Google-Style Password Strength algorithm** enforced on all endpoints (Uppercase, lowercase, number, special character, 8+ chars).
+  - Strict IP-based access control for administrative roles (Admin login only visible on `10.43.120.56`).
+  - No default/demo credentials. All user provisioning must be done properly.
+- **Payment Gateway Integration**:
+  - Integrated **Razorpay Standard Web Checkout** for Fee ledger settlements.
+- **Automated Testing Suite**:
+  - Uses `jest` for core database engine logic and integrations.
 
 ---
 
-## 🔑 Demo Accounts
+## 🔑 Authentication & Provisioning
 
-| Role | Login ID | Password | Access Details |
-| :--- | :--- | :--- | :--- |
-| **Student** | `AJVSTU001` | `Student@123` | View grades, CGPA, attendance, download official marksheet |
-| **Faculty** | `FAC001` | `Faculty@123` | Enter marks, review applicants, publish bulletins |
-| **Admin** | `ADMIN001` | `Admin@123` | Full administrative control, reset student passwords |
+**Demo accounts have been permanently removed for security.**
+- **Students**: Self-register on the portal. Wait for staff/admin approval.
+- **Staff**: Admins can issue staff/faculty IDs from the admin console.
+- **Admin**: The admin login is explicitly restricted by IP. You must load the site from `10.43.120.56` to see and use the Admin portal.
 
 ---
 
-## 🚀 Quick Start (Local Run)
+### Pre-requisites
+- Create a `.env` file with Razorpay keys (optional, but required for fee payments):
+  ```
+  RAZORPAY_KEY_ID=rzp_test_xxxxxx
+  RAZORPAY_KEY_SECRET=yyyyyyy
+  ```
 
+### Run
 Open the project folder in terminal:
 
 ```bash
 npm install
 npm start
+```
+
+### Testing
+To run the automated tests via Jest:
+```bash
+npm test
 ```
 
 Open in your browser:
