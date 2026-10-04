@@ -3439,6 +3439,23 @@ async function executeFeePayment(e, feeId) {
   const amountInPaise = parseInt(amountStr) * 100 || 100000;
 
   try {
+    // Demo Mode Bypass: If Razorpay is not configured on the backend, skip it and simulate payment
+    if (!state.config || !state.config.razorpayKeyId) {
+      const demoTxnId = "demo_txn_" + Date.now();
+      const res = await api(`/api/student/fees/${feeId}/pay`, {
+        method: "POST",
+        body: {
+          paymentMode: currentPaymentMethod.toUpperCase(),
+          details: details + " (Demo Txn: " + demoTxnId + ")"
+        }
+      });
+      toast("Demo Fee Payment Successful! Transaction: " + res.transactionId, true);
+      modalDialog.close();
+      await openStudentFeesView();
+      setTimeout(() => { openOfficialFeeReceipt(feeId); }, 200);
+      return;
+    }
+
     // 1. Create Order
     const orderRes = await api("/api/create-order", {
       method: "POST",
@@ -3643,6 +3660,25 @@ async function executePayAll(e) {
   const amountInPaise = parseInt(amountStr) * 100 || 100000;
 
   try {
+    // Demo Mode Bypass: If Razorpay is not configured on the backend, skip it and simulate bulk payment
+    if (!state.config || !state.config.razorpayKeyId) {
+      const demoTxnId = "demo_txn_" + Date.now();
+      const res = await api("/api/student/fees/pay-all", {
+        method: "POST",
+        body: {
+          paymentMode: currentPaymentMethod.toUpperCase(),
+          details: "Batch Settlement - " + details + " (Demo Txn: " + demoTxnId + ")"
+        }
+      });
+
+      const count = res.paidCount || res.count || 'all';
+      const total = res.totalPaidAmount || res.totalPaid || '';
+      toast(`Demo Settlement of ${count} fee items ${total ? `(₹${total.toLocaleString('en-IN')})` : ''} successful!`, true);
+      modalDialog.close();
+      await openStudentFeesView();
+      return;
+    }
+
     // 1. Create Order
     const orderRes = await api("/api/create-order", {
       method: "POST",
