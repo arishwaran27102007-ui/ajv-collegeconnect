@@ -76,17 +76,21 @@ function getClientIp(req) {
   return raw.replace(/^::ffff:/, "").trim();
 }
 
-// IP / Host Authorization for Admin Console (strictly restricted to authorized IP from .env)
+// IP / Host Authorization for Admin Console
+// ONLY accessible from the college WiFi network (10.43.120.x)
+// Any other WiFi or mobile data connection is BLOCKED
+const os = require('os');
+const { execSync } = require('child_process');
+
 function isAuthorizedAdminIP(req) {
   const clientIp = getClientIp(req);
-  const host = (req.headers.host || "").split(":")[0].trim();
-  const adminIp = process.env.ADMIN_IP || "10.43.120.56";
-
-  // STRICT network IP match
-  if (clientIp === adminIp || host === adminIp) {
+  
+  // STRICT: Only show admin if the IP exactly matches 10.43.120.56
+  // No exceptions whatsoever.
+  if (clientIp === "10.43.120.56") {
     return true;
   }
-
+  
   return false;
 }
 

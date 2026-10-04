@@ -11,7 +11,7 @@
     {
       "id": 1,
       "loginId": "ADMIN001",
-      "passwordHash": "$2a$10$K3wdih8b4n5q6Ye7gX85Nu4ozrGz/g9skJjmXdk4/Rd4X0Lj6Lu9m",
+      "passwordHash": "$2a$10$8TEwOB6PJ2y3bLm3jKBMaez1dS24VoqfNJivrl8cZZk2EOj7fjuCe",
       "role": "admin",
       "fullName": "AJV Administrator",
       "email": "admin@ajv.edu",
@@ -25,7 +25,7 @@
     {
       "id": 2,
       "loginId": "FAC001",
-      "passwordHash": "$2a$10$K3wdih8b4n5q6Ye7gX85Nu4ozrGz/g9skJjmXdk4/Rd4X0Lj6Lu9m",
+      "passwordHash": "$2a$10$GCse0YPGtpwWbehE7etFfuCRSx0abusF9PQ7WjFWzNnKSI6dIF18G",
       "role": "staff",
       "fullName": "Dr. Priya Faculty",
       "email": "faculty01@ajv.edu",
@@ -39,7 +39,7 @@
     {
       "id": 3,
       "loginId": "AJVSTU001",
-      "passwordHash": "$2a$10$Gjwiwc4sUzzgdDrKfxlPWuT9aNyqmZ2n7MOgz9ESjT6EMNxdpT9N2",
+      "passwordHash": "$2a$10$AdN5HattWXA9XUYwIpHCfOx3IDFTS3btXCbHplKaRLBWVo6Jmfypu",
       "role": "student",
       "fullName": "Ananya Kumar",
       "email": "stu001@ajv.edu",
@@ -243,28 +243,6 @@
       "overallPercentage": 0,
       "attendance": 0,
       "mustChangePassword": false
-    },
-    {
-      "id": 14,
-      "loginId": "AJVSTU009",
-      "passwordHash": "$2a$10$VX6f4YaY2MCsdJZlp5Sbi.g0AFqflGW.zGOUQLwAlKMO07A/8GjRC",
-      "role": "student",
-      "fullName": "Test Student",
-      "email": "teststudent0009@ajv.edu",
-      "phone": "1234567890",
-      "parentName": "Test Parent",
-      "dob": "2000-01-01",
-      "gender": "Male",
-      "registerNo": "AJVSTU009",
-      "department": "Computer Science",
-      "year": "I Year",
-      "section": "A",
-      "address": "Test Address",
-      "status": "active",
-      "cgpa": 0,
-      "overallPercentage": 0,
-      "attendance": 0,
-      "mustChangePassword": true
     }
   ],
   "courses": [
@@ -1079,6 +1057,18 @@
       "title": "Official Result Published: Semester 1",
       "body": "The Controller of Examinations has officially released the Semester 1 examination results. Students and faculty can now view semester statements of grades and download verified marksheets with the official institutional seal.",
       "createdAt": "2026-10-02T22:24:10.618Z"
+    },
+    {
+      "id": 17,
+      "title": "Official Result Published: Semester 2",
+      "body": "The Controller of Examinations has officially released the Semester 2 examination results. Students and faculty can now view semester statements of grades and download verified marksheets with the official institutional seal.",
+      "createdAt": "2026-10-04T04:01:25.185Z"
+    },
+    {
+      "id": 18,
+      "title": "Official Result Published: Semester 1",
+      "body": "The Controller of Examinations has officially released the Semester 1 examination results. Students and faculty can now view semester statements of grades and download verified marksheets with the official institutional seal.",
+      "createdAt": "2026-10-04T04:33:11.745Z"
     }
   ],
   "resultsPublication": {
@@ -1136,6 +1126,22 @@
       "publishedBy": "AJV Administrator",
       "sessionName": "April / May 2026 End Semester Examinations",
       "department": "Information Technology",
+      "year": "ALL"
+    },
+    "2_ALL_ALL": {
+      "isPublished": true,
+      "publishedAt": "2026-10-04T04:01:25.183Z",
+      "publishedBy": "AJV Administrator",
+      "sessionName": "April / May 2026 End Semester Examinations",
+      "department": "ALL",
+      "year": "ALL"
+    },
+    "1_ALL_ALL": {
+      "isPublished": true,
+      "publishedAt": "2026-10-04T04:33:11.743Z",
+      "publishedBy": "AJV Administrator",
+      "sessionName": "April / May 2026 End Semester Examinations",
+      "department": "ALL",
       "year": "ALL"
     }
   },

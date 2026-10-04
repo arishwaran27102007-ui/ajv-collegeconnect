@@ -719,6 +719,11 @@ async function isSemesterPublished(semester, studentDepartment = "ALL", studentY
   }
   
   const pub = jsonDb.resultsPublication || {};
+
+  // Check legacy format (just semester number as key, e.g. "1", "2")
+  if (pub[String(numS)] && pub[String(numS)].isPublished) return true;
+
+  // Check new composite key format
   if (pub[`${numS}_ALL_ALL`] && pub[`${numS}_ALL_ALL`].isPublished) return true;
   if (pub[`${numS}_${studentDepartment}_ALL`] && pub[`${numS}_${studentDepartment}_ALL`].isPublished) return true;
   if (pub[`${numS}_ALL_${studentYear}`] && pub[`${numS}_ALL_${studentYear}`].isPublished) return true;

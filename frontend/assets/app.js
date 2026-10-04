@@ -6,6 +6,9 @@ const themeToggleBtn = document.getElementById("themeToggleBtn");
 
 function checkSemPub(pubMap, sem, dept = 'ALL', year = 'ALL') {
   if (!pubMap) return false;
+  // Check legacy key format (just semester number)
+  if (pubMap[String(sem)]?.isPublished) return true;
+  // Check new composite key formats
   const k1 = `${sem}_ALL_ALL`;
   const k2 = `${sem}_${dept}_ALL`;
   const k3 = `${sem}_ALL_${year}`;
@@ -1043,10 +1046,10 @@ async function loadStudentSemResult(sem) {
 
     const courses = data.courses || [];
     container.innerHTML = `
-      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 18px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+      <div class="result-success-alert">
         <div>
-          <b style="color:#166534;font-size:15px;">✓ Official Results Published: Semester ${sem} (${esc(data.year)})</b>
-          <div style="color:#15803d;font-size:12px;">Certified by ${esc(data.publishedBy || 'AJV Controller of Examinations')} • SGPA: <b>${data.sgpa} / 10.0</b> • Result: <b>${data.resultStatus}</b></div>
+          <b class="title">✓ Official Results Published: Semester ${sem} (${esc(data.year)})</b>
+          <div class="sub">Certified by ${esc(data.publishedBy || 'AJV Controller of Examinations')} • SGPA: <b>${data.sgpa} / 10.0</b> • Result: <b>${data.resultStatus}</b></div>
         </div>
         <button class="btn gold" onclick="openOfficialMarksheet(${sem})">🎓 View Official Marksheet (With Seal) →</button>
       </div>
@@ -1555,8 +1558,9 @@ async function openPublishResultsCenter() {
                 <div style="display:flex;flex-direction:column;gap:14px;">
                   ${y.sems.map(sem => {
                     const pubMapKeys = Object.keys(pubMap).filter(k => k.startsWith(String(sem) + "_"));
-                    const isPub = pubMapKeys.some(k => pubMap[k].isPublished);
-                    const pub = isPub ? pubMap[pubMapKeys.find(k => pubMap[k].isPublished)] : { isPublished: false };
+                    const legacyPub = pubMap[String(sem)] && pubMap[String(sem)].isPublished;
+                    const isPub = legacyPub || pubMapKeys.some(k => pubMap[k].isPublished);
+                    const pub = isPub ? (legacyPub ? pubMap[String(sem)] : pubMap[pubMapKeys.find(k => pubMap[k].isPublished)]) : { isPublished: false };
                     
                     const semAnalytics = analytics[String(sem)] || {
                       totalEvaluated: 0,
@@ -1613,15 +1617,12 @@ async function openPublishResultsCenter() {
 
                         <!-- Action Toolbar -->
                         <div style="display:flex;gap:6px;align-items:center;margin-top:12px;">
-                          ${isPub ? `
-                            <button class="btn secondary mini" style="flex:1;" onclick="openPublishModal(${sem}, false)">
-                              🔒 Unpublish
-                            </button>
-                          ` : `
-                            <button class="btn gold mini" style="flex:1;" onclick="openPublishModal(${sem}, true)">
-                              🚀 Publish Results
-                            </button>
-                          `}
+                          <button class="btn gold mini" style="flex:1;" onclick="openPublishModal(${sem}, true)">
+                            🚀 Publish Results
+                          </button>
+                          <button class="btn secondary mini" style="flex:1;" onclick="openPublishModal(${sem}, false)">
+                            🔒 Unpublish
+                          </button>
                           <button class="btn secondary mini" title="Tabulated Mark Register (TMR) Broadsheet" onclick="openSemesterBroadsheet(${sem})">
                             📑 TMR
                           </button>
@@ -1670,9 +1671,9 @@ function openPublishModal(sem, willPublish) {
     <form onsubmit="executePublish(event, ${sem}, ${willPublish})">
       <div class="modal-body">
         ${willPublish ? `
-          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 14px;margin-bottom:14px;">
-            <b style="color:#15803d;font-size:14px;">Pre-Publication Valuation Audit Summary:</b>
-            <div style="display:flex;gap:16px;margin-top:6px;font-size:12px;color:#166534;">
+          <div style="background:var(--alert-success-bg);border:1px solid var(--alert-success-border);border-radius:8px;padding:12px 14px;margin-bottom:14px;">
+            <b style="color:var(--alert-success-text);font-size:14px;">Pre-Publication Valuation Audit Summary:</b>
+            <div style="display:flex;gap:16px;margin-top:6px;font-size:12px;color:var(--alert-success-text);">
               <span>Total Evaluated: <b>${evalCount} Candidates</b></span>
               <span>Pass Rate: <b>${passRate}%</b></span>
               <span>Batch Average SGPA: <b>${analytics.avgSgpa || '—'}</b></span>
@@ -5032,6 +5033,50 @@ window.renderPasswordStrength = function(inputId, meterId) {
 layoutNav();
 loadConfig().then(() => {
   showPage(state.user ? "dashboard" : "home");
+  
+  // IP Monitoring: Check every second for IP changes to enforce STRICT admin security
+  setInterval(async () => {
+    try {
+      const opt = {};
+      const adminDevice = localStorage.getItem("ajv_admin_device");
+      if (adminDevice) opt.headers = { "x-client-ip": adminDevice };
+      
+      const res = await fetch('/api/config', opt);
+      if (!res.ok) return;
+      const d = await res.json();
+      
+      const wasAdminAllowed = state.config && state.config.isAdminAllowed;
+      const isAdminAllowedNow = d.isAdminAllowed;
+      
+      if (wasAdminAllowed && !isAdminAllowedNow) {
+        // IP changed to UNAUTHORIZED!
+        state.config.isAdminAllowed = false;
+        
+        // If logged in as admin, instantly kick them out
+        if (state.user && state.user.role === 'admin') {
+          logout(false);
+          toast("Security Alert: Network IP change detected. Admin access instantly revoked.", false);
+        }
+        
+        // If on login page trying to select Admin
+        if (!state.user && state.role === 'admin') {
+          state.role = 'student';
+          if (document.querySelector('.login-wrap')) {
+            renderLogin();
+            toast("Admin access locked: Unauthorized IP detected.", false);
+          }
+        } else if (!state.user && document.querySelector('.login-wrap')) {
+          renderLogin(); // Refresh to hide the tab
+        }
+      } else if (!wasAdminAllowed && isAdminAllowedNow) {
+        // IP changed to AUTHORIZED
+        state.config.isAdminAllowed = true;
+        if (!state.user && document.querySelector('.login-wrap')) {
+          renderLogin(); // Refresh to show the tab
+        }
+      }
+    } catch (e) {}
+  }, 1000);
 });
 
 
