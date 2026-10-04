@@ -267,7 +267,9 @@ async function login() {
 }
 
 function renderLogin() {
-  const isAdminAllowed = Boolean(state.config && state.config.isAdminAllowed === true);
+  const urlParams = new URLSearchParams(window.location.search);
+  const isHiddenAdminUrl = urlParams.get('admin') === 'show';
+  const isAdminAllowed = Boolean(state.config && state.config.isAdminAllowed === true && isHiddenAdminUrl);
 
   if (state.role === "admin" && !isAdminAllowed) {
     state.role = "student";
@@ -296,9 +298,14 @@ function renderLogin() {
           <label>Password</label>
           <input id="password" type="password" placeholder="Enter your password" required>
 
+          ${state.role === 'admin' ? `
+          <label>Secret Passkey</label>
+          <input id="adminPasskey" type="password" placeholder="Enter Admin Passkey" required>
+          ` : ''}
+
           <label class="show-pass-label">
-            <input type="checkbox" onchange="document.getElementById('password').type = this.checked ? 'text' : 'password'">
-            <span>Show Password</span>
+            <input type="checkbox" onchange="document.getElementById('password').type = this.checked ? 'text' : 'password'; if(document.getElementById('adminPasskey')) document.getElementById('adminPasskey').type = this.checked ? 'text' : 'password';">
+            <span>Show Password(s)</span>
           </label>
 
           <div class="notice" style="text-align:center;">
@@ -315,8 +322,11 @@ function renderLogin() {
 
 
 function setLoginRole(r) {
-  if (r === "admin" && (!state.config || !state.config.isAdminAllowed)) {
-    toast("Admin access is restricted to authorized device (10.43.120.56)", false);
+  const urlParams = new URLSearchParams(window.location.search);
+  const isHiddenAdminUrl = urlParams.get('admin') === 'show';
+  
+  if (r === "admin" && (!state.config || !state.config.isAdminAllowed || !isHiddenAdminUrl)) {
+    toast("Admin access is restricted to authorized network and URL.", false);
     return;
   }
   state.role = r;
@@ -325,8 +335,11 @@ function setLoginRole(r) {
 
 async function doLogin(e) {
   e.preventDefault();
-  if (state.role === "admin" && (!state.config || !state.config.isAdminAllowed)) {
-    toast("Admin access is restricted to authorized device (10.43.120.56)", false);
+  const urlParams = new URLSearchParams(window.location.search);
+  const isHiddenAdminUrl = urlParams.get('admin') === 'show';
+
+  if (state.role === "admin" && (!state.config || !state.config.isAdminAllowed || !isHiddenAdminUrl)) {
+    toast("Admin access is restricted to authorized network and URL.", false);
     return;
   }
   try {
@@ -335,7 +348,8 @@ async function doLogin(e) {
       body: {
         loginId: loginId.value,
         password: password.value,
-        role: state.role
+        role: state.role,
+        adminPasskey: document.getElementById("adminPasskey") ? document.getElementById("adminPasskey").value : undefined
       }
     });
     setAuth(d);

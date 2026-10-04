@@ -83,9 +83,20 @@ const os = require('os');
 const { execSync } = require('child_process');
 
 function isAuthorizedAdminIP(req) {
-  // Removed IP restriction to allow admin access from any network
-  // (e.g. Render). Access is still secured by admin credentials.
-  return true;
+  const allowedIpsStr = process.env.ADMIN_ALLOWED_IPS;
+  if (!allowedIpsStr) {
+    // If no whitelist is configured, allow all (relies on Passkey & hidden URL)
+    return true; 
+  }
+  
+  const clientIp = getClientIp(req);
+  const allowedIps = allowedIpsStr.split(',').map(ip => ip.trim());
+  
+  if (allowedIps.includes('*') || allowedIps.includes(clientIp)) {
+    return true;
+  }
+  
+  return false;
 }
 
 function publicUser(u) {
@@ -205,11 +216,22 @@ app.post("/api/auth/login", async (req, res) => {
     return res.status(400).json({ message: "Login ID, password and account type are required." });
   }
 
-  // Admin IP Protection
-  if (requestedRole === "admin" && !isAuthorizedAdminIP(req)) {
-    return res.status(403).json({
-      message: `Admin login is strictly restricted to the authorized host (${process.env.ADMIN_IP || "10.43.120.56"}).`
-    });
+  // Admin Protection
+  if (requestedRole === "admin") {
+    if (!isAuthorizedAdminIP(req)) {
+      return res.status(403).json({
+        message: "Admin access is restricted from your current network IP."
+      });
+    }
+
+    const expectedPasskey = process.env.ADMIN_PASSKEY || "ajv-admin-secret";
+    const providedPasskey = clean(req.body.adminPasskey);
+    
+    if (providedPasskey !== expectedPasskey) {
+      return res.status(403).json({
+        message: "Invalid Admin Passkey. Access denied."
+      });
+    }
   }
 
   try {
