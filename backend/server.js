@@ -83,15 +83,9 @@ const os = require('os');
 const { execSync } = require('child_process');
 
 function isAuthorizedAdminIP(req) {
-  const clientIp = getClientIp(req);
-  
-  // STRICT: Only show admin if the IP exactly matches 10.43.120.56
-  // No exceptions whatsoever.
-  if (clientIp === "10.43.120.56") {
-    return true;
-  }
-  
-  return false;
+  // Removed IP restriction to allow admin access from any network
+  // (e.g. Render). Access is still secured by admin credentials.
+  return true;
 }
 
 function publicUser(u) {
