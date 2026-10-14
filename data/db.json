@@ -4,7 +4,7 @@
     "version": 3
   },
   "counters": {
-    "student": 9,
+    "student": 14,
     "faculty": 3
   },
   "users": [
@@ -243,6 +243,116 @@
       "overallPercentage": 0,
       "attendance": 0,
       "mustChangePassword": false
+    },
+    {
+      "id": 14,
+      "loginId": "AJVSTU010",
+      "passwordHash": "$2a$10$LAY/Cx/MdXgwE14QaSChBOSxK2.9ECrEdu3jbr96XgfjbrjrxvpZ.",
+      "role": "student",
+      "fullName": "Test Student",
+      "email": "teststudent0010@ajv.edu",
+      "phone": "1234567890",
+      "parentName": "Test Parent",
+      "dob": "2000-01-01",
+      "gender": "Male",
+      "registerNo": "AJVSTU010",
+      "department": "Computer Science",
+      "year": "I Year",
+      "section": "A",
+      "address": "Test Address",
+      "status": "active",
+      "cgpa": 0,
+      "overallPercentage": 0,
+      "attendance": 0,
+      "mustChangePassword": true
+    },
+    {
+      "id": 15,
+      "loginId": "AJVSTU011",
+      "passwordHash": "$2a$10$X7b5190mnbr39FBUJ0opBecDTbeLb2Oo5BcGGraWedzxc3/MXIeRG",
+      "role": "student",
+      "fullName": "Test Student",
+      "email": "teststudent0011@ajv.edu",
+      "phone": "1234567890",
+      "parentName": "Test Parent",
+      "dob": "2000-01-01",
+      "gender": "Male",
+      "registerNo": "AJVSTU011",
+      "department": "Computer Science",
+      "year": "I Year",
+      "section": "A",
+      "address": "Test Address",
+      "status": "active",
+      "cgpa": 0,
+      "overallPercentage": 0,
+      "attendance": 0,
+      "mustChangePassword": true
+    },
+    {
+      "id": 16,
+      "loginId": "AJVSTU012",
+      "passwordHash": "$2a$10$vv2VJWL7MPOfQJE2FRmEi.sF5.SsrVCz7qwLwdbh1icmYC3tOvgUe",
+      "role": "student",
+      "fullName": "Test Student",
+      "email": "teststudent0012@ajv.edu",
+      "phone": "1234567890",
+      "parentName": "Test Parent",
+      "dob": "2000-01-01",
+      "gender": "Male",
+      "registerNo": "AJVSTU012",
+      "department": "Computer Science",
+      "year": "I Year",
+      "section": "A",
+      "address": "Test Address",
+      "status": "active",
+      "cgpa": 0,
+      "overallPercentage": 0,
+      "attendance": 0,
+      "mustChangePassword": true
+    },
+    {
+      "id": 17,
+      "loginId": "AJVSTU013",
+      "passwordHash": "$2a$10$W/IZb3Jd/lIhaPwc9kNkOeZGQtURX9sfaVYJzlFBlMzzziO71.l5O",
+      "role": "student",
+      "fullName": "Test Student",
+      "email": "teststudent0013@ajv.edu",
+      "phone": "1234567890",
+      "parentName": "Test Parent",
+      "dob": "2000-01-01",
+      "gender": "Male",
+      "registerNo": "AJVSTU013",
+      "department": "Computer Science",
+      "year": "I Year",
+      "section": "A",
+      "address": "Test Address",
+      "status": "active",
+      "cgpa": 0,
+      "overallPercentage": 0,
+      "attendance": 0,
+      "mustChangePassword": true
+    },
+    {
+      "id": 18,
+      "loginId": "AJVSTU014",
+      "passwordHash": "$2a$10$O0XvwDTwHFL9nQxCpGBo5e92NS6mSgBh0O5o70qtRP./7HGGpBAb.",
+      "role": "student",
+      "fullName": "Test Student",
+      "email": "teststudent0014@ajv.edu",
+      "phone": "1234567890",
+      "parentName": "Test Parent",
+      "dob": "2000-01-01",
+      "gender": "Male",
+      "registerNo": "AJVSTU014",
+      "department": "Computer Science",
+      "year": "I Year",
+      "section": "A",
+      "address": "Test Address",
+      "status": "active",
+      "cgpa": 0,
+      "overallPercentage": 0,
+      "attendance": 0,
+      "mustChangePassword": true
     }
   ],
   "courses": [
@@ -3089,6 +3199,411 @@
         }
       ],
       "createdAt": "2026-10-02T21:49:54.744Z"
+    }
+  ],
+  "academicArchives": [
+    {
+      "id": 1,
+      "registerNo": "12IT001",
+      "studentName": "Rajesh Kannan V",
+      "department": "Information Technology",
+      "degree": "B.Tech - Information Technology",
+      "admissionYear": 2012,
+      "graduationYear": 2016,
+      "batch": "2012-2016",
+      "cgpa": 8.85,
+      "overallPercentage": 84.2,
+      "attendancePercentage": 92.5,
+      "finalClassification": "First Class with Distinction",
+      "degreeAwardedDate": "2016-05-28",
+      "certificateSealHash": "7b4cf49e29a39fbc85375c3db9ea7dc8ef01bc82012435e29fa961e6878b66e1",
+      "academicRecords": [
+        {
+          "semester": 1,
+          "code": "HS101",
+          "name": "Technical English",
+          "credits": 3,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 1,
+          "code": "MA101",
+          "name": "Engineering Mathematics I",
+          "credits": 4,
+          "grade": "A+",
+          "gradePoint": 9
+        },
+        {
+          "semester": 2,
+          "code": "CS102",
+          "name": "Programming & Data Structures",
+          "credits": 4,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 3,
+          "code": "IT201",
+          "name": "Database Management Systems",
+          "credits": 4,
+          "grade": "A+",
+          "gradePoint": 9
+        },
+        {
+          "semester": 4,
+          "code": "IT202",
+          "name": "Operating Systems",
+          "credits": 4,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 5,
+          "code": "IT301",
+          "name": "Computer Networks",
+          "credits": 4,
+          "grade": "A+",
+          "gradePoint": 9
+        },
+        {
+          "semester": 6,
+          "code": "IT302",
+          "name": "Web Technologies",
+          "credits": 4,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 7,
+          "code": "IT401",
+          "name": "Cloud Computing & Distributed Systems",
+          "credits": 4,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 8,
+          "code": "IT402",
+          "name": "Capstone Project Work",
+          "credits": 8,
+          "grade": "O",
+          "gradePoint": 10
+        }
+      ],
+      "feeLedgerSummary": {
+        "status": "CLEARED_TREASURY",
+        "clearedDate": "2016-04-10",
+        "receiptNo": "AJV-2016-FEES-0842"
+      },
+      "attendanceSummary": {
+        "overall": 92.5,
+        "conduct": "Exemplary"
+      },
+      "archivedAt": "2016-06-01T10:00:00.000Z",
+      "archivedBy": "AJV Institutional Registrar",
+      "isLocked": true
+    },
+    {
+      "id": 2,
+      "registerNo": "14IT018",
+      "studentName": "Vigneshwaran R",
+      "department": "Information Technology",
+      "degree": "B.Tech - Information Technology",
+      "admissionYear": 2014,
+      "graduationYear": 2018,
+      "batch": "2014-2018",
+      "cgpa": 8.92,
+      "overallPercentage": 85.6,
+      "attendancePercentage": 91.8,
+      "finalClassification": "First Class with Distinction",
+      "degreeAwardedDate": "2018-06-12",
+      "certificateSealHash": "c29bfb487b33c5e88417e2dc54adff10eefb12638a1924bce8110dbd873c51ef",
+      "academicRecords": [
+        {
+          "semester": 1,
+          "code": "MA101",
+          "name": "Calculus & Linear Algebra",
+          "credits": 4,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 2,
+          "code": "CS101",
+          "name": "Problem Solving & Python",
+          "credits": 4,
+          "grade": "A+",
+          "gradePoint": 9
+        },
+        {
+          "semester": 3,
+          "code": "IT201",
+          "name": "Data Structures & Algorithms",
+          "credits": 4,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 4,
+          "code": "IT202",
+          "name": "Design & Analysis of Algorithms",
+          "credits": 4,
+          "grade": "A+",
+          "gradePoint": 9
+        },
+        {
+          "semester": 5,
+          "code": "IT301",
+          "name": "Computer Architecture",
+          "credits": 3,
+          "grade": "A+",
+          "gradePoint": 9
+        },
+        {
+          "semester": 6,
+          "code": "IT302",
+          "name": "Mobile Application Development",
+          "credits": 4,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 7,
+          "code": "IT401",
+          "name": "Information Security & Cryptography",
+          "credits": 4,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 8,
+          "code": "IT402",
+          "name": "Major Project & Viva",
+          "credits": 8,
+          "grade": "O",
+          "gradePoint": 10
+        }
+      ],
+      "feeLedgerSummary": {
+        "status": "CLEARED_TREASURY",
+        "clearedDate": "2018-05-15",
+        "receiptNo": "AJV-2018-FEES-1204"
+      },
+      "attendanceSummary": {
+        "overall": 91.8,
+        "conduct": "Exemplary"
+      },
+      "archivedAt": "2018-06-15T10:00:00.000Z",
+      "archivedBy": "AJV Institutional Registrar",
+      "isLocked": true
+    },
+    {
+      "id": 3,
+      "registerNo": "14EC032",
+      "studentName": "Sneha Murali",
+      "department": "Electronics and Communication Engineering",
+      "degree": "B.E. - Electronics & Communication",
+      "admissionYear": 2014,
+      "graduationYear": 2018,
+      "batch": "2014-2018",
+      "cgpa": 9.14,
+      "overallPercentage": 88.4,
+      "attendancePercentage": 94.2,
+      "finalClassification": "First Class with Distinction",
+      "degreeAwardedDate": "2018-06-12",
+      "certificateSealHash": "a5d09f7a4b8893cd7217dbbf8308cf2b8c049deea7135e69aa4b721e25e981bc",
+      "academicRecords": [
+        {
+          "semester": 1,
+          "code": "PH101",
+          "name": "Physics for Electronics",
+          "credits": 3,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 2,
+          "code": "EC102",
+          "name": "Circuit Theory & Analysis",
+          "credits": 4,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 3,
+          "code": "EC201",
+          "name": "Electronic Devices & Circuits",
+          "credits": 4,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 4,
+          "code": "EC202",
+          "name": "Signals and Systems",
+          "credits": 4,
+          "grade": "A+",
+          "gradePoint": 9
+        },
+        {
+          "semester": 5,
+          "code": "EC301",
+          "name": "Digital Communication",
+          "credits": 4,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 6,
+          "code": "EC302",
+          "name": "VLSI Design",
+          "credits": 4,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 7,
+          "code": "EC401",
+          "name": "Embedded & IoT Systems",
+          "credits": 4,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 8,
+          "code": "EC402",
+          "name": "Industrial Project",
+          "credits": 8,
+          "grade": "O",
+          "gradePoint": 10
+        }
+      ],
+      "feeLedgerSummary": {
+        "status": "CLEARED_TREASURY",
+        "clearedDate": "2018-05-18",
+        "receiptNo": "AJV-2018-FEES-1355"
+      },
+      "attendanceSummary": {
+        "overall": 94.2,
+        "conduct": "Exemplary"
+      },
+      "archivedAt": "2018-06-15T10:00:00.000Z",
+      "archivedBy": "AJV Institutional Registrar",
+      "isLocked": true
+    },
+    {
+      "id": 4,
+      "registerNo": "18CS055",
+      "studentName": "Harish Kumar M",
+      "department": "Computer Science and Engineering",
+      "degree": "B.E. - Computer Science & Engineering",
+      "admissionYear": 2018,
+      "graduationYear": 2022,
+      "batch": "2018-2022",
+      "cgpa": 9.05,
+      "overallPercentage": 87.1,
+      "attendancePercentage": 93,
+      "finalClassification": "First Class with Distinction",
+      "degreeAwardedDate": "2022-07-04",
+      "certificateSealHash": "f308bc11492ba230d52b998cf112879aef02cd38941bbec7190f845ad3907c12",
+      "academicRecords": [
+        {
+          "semester": 1,
+          "code": "CS101",
+          "name": "Python Programming",
+          "credits": 4,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 2,
+          "code": "CS102",
+          "name": "Data Structures & OOP",
+          "credits": 4,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 3,
+          "code": "CS201",
+          "name": "Discrete Mathematics",
+          "credits": 4,
+          "grade": "A+",
+          "gradePoint": 9
+        },
+        {
+          "semester": 4,
+          "code": "CS202",
+          "name": "Database Systems",
+          "credits": 4,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 5,
+          "code": "CS301",
+          "name": "Machine Learning Foundations",
+          "credits": 4,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 6,
+          "code": "CS302",
+          "name": "Full Stack Engineering",
+          "credits": 4,
+          "grade": "O",
+          "gradePoint": 10
+        },
+        {
+          "semester": 7,
+          "code": "CS401",
+          "name": "Distributed Systems",
+          "credits": 4,
+          "grade": "A+",
+          "gradePoint": 9
+        },
+        {
+          "semester": 8,
+          "code": "CS402",
+          "name": "Final Year Capstone",
+          "credits": 8,
+          "grade": "O",
+          "gradePoint": 10
+        }
+      ],
+      "feeLedgerSummary": {
+        "status": "CLEARED_TREASURY",
+        "clearedDate": "2022-06-20",
+        "receiptNo": "AJV-2022-FEES-2490"
+      },
+      "attendanceSummary": {
+        "overall": 93,
+        "conduct": "Exemplary"
+      },
+      "archivedAt": "2022-07-06T10:00:00.000Z",
+      "archivedBy": "AJV Institutional Registrar",
+      "isLocked": true
+    }
+  ],
+  "auditLedger": [
+    {
+      "id": 1,
+      "entryIndex": 1,
+      "eventType": "GENESIS_CLOUD_ARCHIVE_INITIALIZED",
+      "entityType": "SYSTEM",
+      "entityId": "AJV-ROOT-LEDGER",
+      "actorId": "SYSTEM_CORE",
+      "actorIp": "127.0.0.1",
+      "dataHash": "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f",
+      "prevHash": "0000000000000000000000000000000000000000000000000000000000000000",
+      "payload": {
+        "version": "2.0.0",
+        "retentionYears": "PERMANENT_WORM",
+        "institution": "AJV College of Engineering"
+      },
+      "createdAt": "2016-01-01T00:00:00.000Z"
     }
   ]
 }

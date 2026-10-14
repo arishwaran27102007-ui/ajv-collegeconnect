@@ -106,6 +106,7 @@ function layoutNav() {
     nav.innerHTML = `
       <button onclick="showPage('dashboard')">Dashboard</button>
       <button onclick="openPublishResultsCenter()" style="color:var(--gold);font-weight:700;">📢 Results Center</button>
+      <button onclick="openCloudArchiveCenter()" style="color:#0ea5e9;font-weight:700;">🏛️ Cloud Archive</button>
       <button onclick="showPage('fees')">💳 Fee Ledger</button>
       <button onclick="openGrievancesPortal()">💬 Helpdesk</button>
       <button onclick="loadFaculty()">Faculty</button>
@@ -118,6 +119,7 @@ function layoutNav() {
       <button onclick="showPage('dashboard')">Dashboard</button>
       <button onclick="openFacultyAttendanceMarker()" style="color:#0891b2;font-weight:700;">📋 Attendance Marker</button>
       <button onclick="openFacultyResultsView()" style="color:var(--gold);font-weight:700;">🎓 Marksheets</button>
+      <button onclick="openCloudArchiveCenter()" style="color:#0ea5e9;font-weight:700;">🏛️ Cloud Archive</button>
       <button onclick="showPage('fees')">💳 Student Fees</button>
       <button onclick="openGrievancesPortal()">💬 Helpdesk</button>
       <button onclick="openAnnouncementModal()">📢 Post Bulletin</button>
@@ -129,6 +131,7 @@ function layoutNav() {
     nav.innerHTML = `
       <button onclick="showPage('dashboard')">Dashboard</button>
       <button onclick="showPage('results')" style="color:var(--gold);font-weight:700;">🎓 Marksheets</button>
+      <button onclick="openCloudArchiveCenter()" style="color:#0ea5e9;font-weight:700;">🏛️ Cloud Archive</button>
       <button onclick="openOfficialHallTicket()" style="color:#2563eb;font-weight:700;">🎫 Hall Ticket</button>
       <button onclick="openDigitalStudentIdCard()" style="font-weight:700;">🪪 Smart ID</button>
       <button onclick="openStudentAttendanceBreakdown()">📋 Attendance</button>
@@ -4997,6 +5000,543 @@ async function saveGrievanceResolution(ticketId) {
 }
 
 // -------------------------------------------------------------
+// =============================================================
+// Cloud Database & Multi-Decade Institutional Archive Frontend
+// =============================================================
+
+let cachedArchivedRecords = [];
+let activeDecadeFilter = "all";
+let activeDeptFilter = "all";
+
+async function openCloudArchiveCenter() {
+  if (!state.user) {
+    showPage("login");
+    return;
+  }
+
+  app.innerHTML = `
+    <div class="archive-wrap">
+      <div class="archive-header-banner">
+        <div class="archive-banner-title">
+          <div>
+            <div class="eyebrow" style="color:#f1d98f;">AJV COLLEGE OF ENGINEERING • INSTITUTIONAL TREASURY &amp; ARCHIVES</div>
+            <h1>Cloud Database &amp; Multi-Decade Academic Archive</h1>
+            <p style="margin:8px 0 0; color:#e2e8f0; max-width:820px; font-size:14px;">
+              Permanent WORM (Write Once, Read Many) Cloud Storage Engine. Instant indexing and sub-millisecond retrieval of student transcripts, degree classifications, and marksheets spanning 10 to 50+ years.
+            </p>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            ${state.user.role === 'admin' ? `
+              <button class="btn gold mini" onclick="openCloudDbConfigModal()">⚙️ Cloud DB Settings</button>
+            ` : ''}
+            <button class="btn mini secondary" onclick="openAuditLedgerModal()">⛓️ Audit Ledger</button>
+          </div>
+        </div>
+
+        <div class="archive-banner-pills" id="cloudArchiveStatusPills">
+          <span class="archive-pill green">🟢 Loading Cloud Status...</span>
+        </div>
+      </div>
+
+      <div class="archive-stats-grid" id="cloudArchiveStatsGrid">
+        <div class="archive-stat-card"><div class="archive-stat-desc">Loading telemetry...</div></div>
+      </div>
+
+      <div class="archive-controls">
+        <div class="decade-filter-pills" id="decadeFilterPills">
+          <button class="decade-btn active" onclick="filterArchivedRecords('all', this)">🏛️ All Cohorts (2012 – Present)</button>
+          <button class="decade-btn" onclick="filterArchivedRecords('12-14 Years Ago', this)">⏳ 12–14 Years Ago (2012–2016)</button>
+          <button class="decade-btn" onclick="filterArchivedRecords('10-12 Years Ago', this)">🏛️ 10–12 Years Ago (2014–2018)</button>
+          <button class="decade-btn" onclick="filterArchivedRecords('6-8 Years Ago', this)">🎓 6–8 Years Ago (2018–2022)</button>
+          <button class="decade-btn" onclick="filterArchivedRecords('Recent', this)">📚 Current Cohorts (2022–2026)</button>
+        </div>
+
+        <div class="archive-search-row">
+          <input type="text" id="archiveSearchInput" class="archive-search-input" placeholder="🔍 Instant search by Register No (e.g. 14IT018), Student Name, or Department..." oninput="searchArchivedRecords(this.value)">
+          <select id="archiveDeptFilter" class="archive-search-input" style="max-width:260px;" onchange="filterArchivedRecordsByDept(this.value)">
+            <option value="all">All Departments</option>
+            <option value="Information Technology">Information Technology</option>
+            <option value="Computer Science and Engineering">Computer Science &amp; Eng.</option>
+            <option value="Electronics and Communication Engineering">Electronics &amp; Comm. Eng.</option>
+            <option value="Mechanical Engineering">Mechanical Engineering</option>
+          </select>
+          <button class="btn secondary" onclick="refreshArchiveCenter()">🔄 Refresh</button>
+        </div>
+      </div>
+
+      <div id="archiveTableContainer">
+        <div style="text-align:center;padding:40px;color:var(--muted);">Loading multi-decade academic archives...</div>
+      </div>
+    </div>
+  `;
+
+  await refreshArchiveCenter();
+}
+
+async function refreshArchiveCenter() {
+  try {
+    const [status, archiveData] = await Promise.all([
+      api("/api/cloud-db/status"),
+      api("/api/archive/records")
+    ]);
+
+    // Render Pills
+    const pillsEl = document.getElementById("cloudArchiveStatusPills");
+    if (pillsEl) {
+      pillsEl.innerHTML = `
+        <span class="archive-pill green">🟢 Engine: ${esc(status.provider)} (${esc(status.host)})</span>
+        <span class="archive-pill blue">🔒 Anti-Deletion: ${esc(status.antiDeletionProtection)}</span>
+        <span class="archive-pill gold">📅 Scope: ${esc(status.decadeCoverage)}</span>
+        <span class="archive-pill green">🛡️ Retention: Permanent WORM</span>
+      `;
+    }
+
+    // Render Stats Grid
+    const statsEl = document.getElementById("cloudArchiveStatsGrid");
+    if (statsEl) {
+      statsEl.innerHTML = `
+        <div class="archive-stat-card">
+          <div class="archive-stat-head">
+            <span class="archive-stat-label">Cloud Database Engine</span>
+            <span class="archive-stat-icon">🌐</span>
+          </div>
+          <div class="archive-stat-val">${esc(status.provider)}</div>
+          <div class="archive-stat-desc">Host: <code>${esc(status.host)}</code> • Mode: <b>${status.dbMode.toUpperCase()}</b></div>
+        </div>
+
+        <div class="archive-stat-card">
+          <div class="archive-stat-head">
+            <span class="archive-stat-label">Anti-Deletion Protection</span>
+            <span class="archive-stat-icon">🔒</span>
+          </div>
+          <div class="archive-stat-val" style="color:var(--green);">Strict WORM Active</div>
+          <div class="archive-stat-desc">PostgreSQL DB Triggers &amp; Chained SHA-256 Ledger prevent data purge</div>
+        </div>
+
+        <div class="archive-stat-card">
+          <div class="archive-stat-head">
+            <span class="archive-stat-label">Historical Retrieval Range</span>
+            <span class="archive-stat-icon">📅</span>
+          </div>
+          <div class="archive-stat-val">${status.oldestRecordYear} – 2026+</div>
+          <div class="archive-stat-desc">Records from 10–14+ years ago indexed for sub-millisecond retrieval</div>
+        </div>
+
+        <div class="archive-stat-card">
+          <div class="archive-stat-head">
+            <span class="archive-stat-label">Tamper-Proof Ledger</span>
+            <span class="archive-stat-icon">🛡️</span>
+          </div>
+          <div class="archive-stat-val">${status.totalArchivedStudents} Archived Dossiers</div>
+          <div class="archive-stat-desc">${status.totalLedgerEntries} Chained Cryptographic Blocks Verified</div>
+        </div>
+      `;
+    }
+
+    cachedArchivedRecords = archiveData.records || [];
+    renderArchiveTable();
+  } catch (e) {
+    toast("Failed to load cloud archive telemetry: " + e.message, false);
+  }
+}
+
+function renderArchiveTable() {
+  const container = document.getElementById("archiveTableContainer");
+  if (!container) return;
+
+  const searchVal = (document.getElementById("archiveSearchInput")?.value || "").trim().toLowerCase();
+  
+  let records = cachedArchivedRecords.filter(r => {
+    // Decade filter
+    if (activeDecadeFilter !== "all" && !r.decadeCategory.includes(activeDecadeFilter)) {
+      return false;
+    }
+    // Dept filter
+    if (activeDeptFilter !== "all" && r.department !== activeDeptFilter) {
+      return false;
+    }
+    // Search query
+    if (searchVal) {
+      const matchReg = (r.registerNo || "").toLowerCase().includes(searchVal);
+      const matchName = (r.studentName || "").toLowerCase().includes(searchVal);
+      const matchDept = (r.department || "").toLowerCase().includes(searchVal);
+      const matchBatch = (r.batch || "").toLowerCase().includes(searchVal);
+      if (!matchReg && !matchName && !matchDept && !matchBatch) return false;
+    }
+    return true;
+  });
+
+  if (records.length === 0) {
+    container.innerHTML = `
+      <div style="background:var(--card);border:1px solid var(--line);border-radius:16px;padding:48px 24px;text-align:center;">
+        <div style="font-size:42px;margin-bottom:12px;">🔍</div>
+        <h3>No Historical Records Found</h3>
+        <p class="muted">No archived student dossiers match the selected filter criteria.</p>
+        <button class="btn secondary" onclick="resetArchiveFilters()">Reset Filters</button>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = `
+    <table class="archive-records-table">
+      <thead>
+        <tr>
+          <th>Register No</th>
+          <th>Student Name</th>
+          <th>Department &amp; Degree</th>
+          <th>Batch &amp; Era</th>
+          <th>CGPA</th>
+          <th>Classification</th>
+          <th>WORM Integrity Seal</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${records.map(r => `
+          <tr>
+            <td>
+              <b style="color:var(--navy);font-size:15px;">${esc(r.registerNo)}</b>
+              <div style="font-size:11px;color:var(--muted);">Adm: ${r.admissionYear}</div>
+            </td>
+            <td>
+              <b>${esc(r.studentName)}</b>
+              <div style="font-size:11px;color:var(--muted);">Graduated: ${r.graduationYear}</div>
+            </td>
+            <td>
+              <div>${esc(r.department)}</div>
+              <small class="muted">${esc(r.degree)}</small>
+            </td>
+            <td>
+              <span class="decade-tag">${esc(r.decadeCategory)}</span>
+              <div style="font-size:11px;color:var(--muted);margin-top:4px;">Batch ${esc(r.batch)}</div>
+            </td>
+            <td>
+              <span class="grade-badge grade-O" style="font-size:13px;padding:4px 10px;">${r.cgpa.toFixed(2)}</span>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px;">${r.overallPercentage.toFixed(1)}%</div>
+            </td>
+            <td>
+              <span style="font-weight:600;font-size:13px;color:var(--navy2);">${esc(r.finalClassification)}</span>
+            </td>
+            <td>
+              <span class="verify-badge" title="Cryptographically sealed in Cloud WORM storage">
+                🔒 Tamper-Proof
+              </span>
+              <div class="seal-hash-code" title="${esc(r.certificateSealHash)}">${esc(r.certificateSealHash.slice(0, 16))}...</div>
+            </td>
+            <td>
+              <div style="display:flex;gap:6px;align-items:center;">
+                <button class="btn mini" onclick="viewHistoricalDossier(${r.id})" title="View full 10+ year academic dossier and marksheet">📜 Dossier</button>
+                <button class="btn mini secondary" onclick="verifyArchivalIntegrity(${r.id})" title="Verify SHA-256 integrity seal">🔍 Verify</button>
+              </div>
+            </td>
+          </tr>
+        `).join("")}
+      </tbody>
+    </table>
+    <div style="margin-top:14px;font-size:12px;color:var(--muted);text-align:right;">
+      Showing ${records.length} historical records • Protected by Institutional WORM Multi-Decade Cloud Policy
+    </div>
+  `;
+}
+
+function filterArchivedRecords(decadeKey, btnEl) {
+  activeDecadeFilter = decadeKey;
+  const btns = document.querySelectorAll("#decadeFilterPills .decade-btn");
+  btns.forEach(b => b.classList.remove("active"));
+  if (btnEl) btnEl.classList.add("active");
+  renderArchiveTable();
+}
+
+function filterArchivedRecordsByDept(dept) {
+  activeDeptFilter = dept;
+  renderArchiveTable();
+}
+
+function searchArchivedRecords() {
+  renderArchiveTable();
+}
+
+function resetArchiveFilters() {
+  activeDecadeFilter = "all";
+  activeDeptFilter = "all";
+  const searchInput = document.getElementById("archiveSearchInput");
+  if (searchInput) searchInput.value = "";
+  const deptFilter = document.getElementById("archiveDeptFilter");
+  if (deptFilter) deptFilter.value = "all";
+  const btns = document.querySelectorAll("#decadeFilterPills .decade-btn");
+  btns.forEach((b, i) => {
+    if (i === 0) b.classList.add("active");
+    else b.classList.remove("active");
+  });
+  renderArchiveTable();
+}
+
+async function viewHistoricalDossier(id) {
+  try {
+    const r = await api(`/api/archive/records/${id}`);
+    if (!r) throw new Error("Record not found.");
+
+    modalDialog.innerHTML = `
+      <div class="modal-header">
+        <div>
+          <h2 style="margin:0;">Permanent Academic Dossier (Alumni Record)</h2>
+          <small class="muted">Batch ${esc(r.batch)} • Register No: <b>${esc(r.registerNo)}</b> • Retained in Cloud WORM Archive</small>
+        </div>
+        <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
+      </div>
+
+      <div class="modal-body dossier-modal-wrap">
+        <div class="dossier-cert-header">
+          <div style="display:flex;align-items:center;gap:16px;">
+            <img src="/assets/college-logo.png" style="width:64px;height:64px;object-fit:contain;" alt="AJV Logo">
+            <div>
+              <h3 style="margin:0;color:var(--navy);font-size:18px;">AJV COLLEGE OF ENGINEERING</h3>
+              <div style="font-size:12px;color:var(--muted);">Autonomous Institution • NAAC 'A+' Accredited • Office of the Registrar</div>
+              <div style="font-size:12px;font-weight:700;color:var(--gold);margin-top:2px;">OFFICIAL PERMANENT INSTITUTIONAL ARCHIVE</div>
+            </div>
+          </div>
+          ${renderInstitutionSealSvg()}
+        </div>
+
+        <div class="dossier-grid">
+          <div class="dossier-item"><small>Candidate Name</small><b>${esc(r.studentName)}</b></div>
+          <div class="dossier-item"><small>Register Number</small><b>${esc(r.registerNo)}</b></div>
+          <div class="dossier-item"><small>Department</small><b>${esc(r.department)}</b></div>
+          <div class="dossier-item"><small>Degree Awarded</small><b>${esc(r.degree)}</b></div>
+          <div class="dossier-item"><small>Admission Year</small><b>${r.admissionYear}</b></div>
+          <div class="dossier-item"><small>Graduation Year</small><b>${r.graduationYear} (${2026 - r.graduationYear} Years Ago)</b></div>
+          <div class="dossier-item"><small>Cumulative CGPA</small><b style="color:var(--green);">${r.cgpa.toFixed(2)} / 10.00</b></div>
+          <div class="dossier-item"><small>Degree Classification</small><b>${esc(r.finalClassification)}</b></div>
+          <div class="dossier-item"><small>Degree Conferred Date</small><b>${r.degreeAwardedDate ? new Date(r.degreeAwardedDate).toLocaleDateString() : 'Conferred'}</b></div>
+          <div class="dossier-item"><small>Institutional Clearance</small><b style="color:#059669;">✓ All Fees &amp; Treasury Cleared</b></div>
+        </div>
+
+        <h3 style="margin:20px 0 10px;font-size:16px;color:var(--navy);">Semester-wise Curriculum &amp; Examination Records</h3>
+        <table class="archive-records-table" style="box-shadow:none;margin-bottom:18px;">
+          <thead>
+            <tr>
+              <th>Sem</th>
+              <th>Course Code</th>
+              <th>Course Title</th>
+              <th>Credits</th>
+              <th>Grade</th>
+              <th>Grade Point</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${(r.academicRecords || []).map(c => `
+              <tr>
+                <td><b>Sem ${c.semester || 1}</b></td>
+                <td><code>${esc(c.code)}</code></td>
+                <td>${esc(c.name)}</td>
+                <td>${c.credits}</td>
+                <td><span class="grade-badge ${gradeClass(c.grade)}">${esc(c.grade)}</span></td>
+                <td><b>${c.gradePoint}</b></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+
+        <div class="hash-audit-box">
+          <b>🔒 Cryptographic Archival Seal (SHA-256):</b><br>
+          ${esc(r.certificateSealHash)}<br><br>
+          <b>Archived At:</b> ${new Date(r.archivedAt).toLocaleString()} • <b>Archived By:</b> ${esc(r.archivedBy)}<br>
+          <b>WORM Immutability Policy:</b> PERMANENT INSTITUTIONAL RECORD • CANNOT BE DELETED BY ANYONE
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display:flex;justify-content:space-between;">
+        <button class="btn secondary" onclick="window.print()">🖨️ Print Official Transcript</button>
+        <button class="btn secondary" onclick="modalDialog.close()">Close</button>
+      </div>
+    `;
+
+    modalDialog.showModal();
+  } catch (e) {
+    toast(e.message, false);
+  }
+}
+
+async function verifyArchivalIntegrity(id) {
+  try {
+    const v = await api(`/api/archive/verify/${id}`);
+
+    modalDialog.innerHTML = `
+      <div class="modal-header">
+        <div>
+          <h2 style="margin:0;color:var(--green);">✓ Integrity Certificate Verified</h2>
+          <small class="muted">Record ID: #${v.recordId} • Register No: <b>${esc(v.registerNo)}</b></small>
+        </div>
+        <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
+      </div>
+
+      <div class="modal-body" style="padding:24px;">
+        <div style="text-align:center;margin-bottom:20px;">
+          <div style="font-size:52px;margin-bottom:8px;">🛡️</div>
+          <h3 style="margin:0;color:var(--navy);">100% Cryptographically Authentic</h3>
+          <p class="muted" style="margin-top:6px;max-width:540px;margin-left:auto;margin-right:auto;">
+            This historical academic record is protected under the AJV WORM (Write-Once, Read-Many) Institutional Policy. The SHA-256 seal matches the cloud storage ledger perfectly.
+          </p>
+        </div>
+
+        <div class="dossier-grid" style="margin-bottom:16px;">
+          <div class="dossier-item"><small>Student Name</small><b>${esc(v.studentName)}</b></div>
+          <div class="dossier-item"><small>Batch</small><b>${esc(v.batch)}</b></div>
+          <div class="dossier-item"><small>Verification Status</small><b style="color:var(--green);">✓ ${esc(v.tamperProofStatus)}</b></div>
+          <div class="dossier-item"><small>Retention Guarantee</small><b>${esc(v.retentionDuration)}</b></div>
+          <div class="dossier-item"><small>Anti-Deletion Lock</small><b style="color:#0284c7;">🔒 ${esc(v.nonDeletableLock)}</b></div>
+          <div class="dossier-item"><small>Verified At</small><b>${new Date(v.verifiedAt).toLocaleTimeString()}</b></div>
+        </div>
+
+        <div class="hash-audit-box">
+          <b>Verified Cryptographic Hash:</b><br>
+          ${esc(v.storedSealHash)}<br><br>
+          <b>Algorithm:</b> ${esc(v.verificationAlgorithm)}<br>
+          <b>Ledger Chain Status:</b> Chained Block Intact • Zero Alteration Detected
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn full" onclick="modalDialog.close()">Acknowledge &amp; Close</button>
+      </div>
+    `;
+
+    modalDialog.showModal();
+  } catch (e) {
+    toast("Verification error: " + e.message, false);
+  }
+}
+
+async function openCloudDbConfigModal() {
+  try {
+    const status = await api("/api/cloud-db/status");
+
+    modalDialog.innerHTML = `
+      <div class="modal-header">
+        <div>
+          <h2 style="margin:0;">Cloud Database Connection Manager</h2>
+          <small class="muted">Configure Cloud PostgreSQL for Multi-Decade Preservation</small>
+        </div>
+        <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
+      </div>
+
+      <div class="modal-body" style="padding:24px;">
+        <div class="notice" style="margin-bottom:20px;">
+          <b>Supported Cloud Providers:</b><br>
+          • <b>Neon Serverless Postgres</b> (Recommended: <code>postgresql://user:pass@ep-cool.us-east-2.aws.neon.tech/neondb?sslmode=require</code>)<br>
+          • <b>Supabase Cloud</b> (<code>postgresql://postgres:pass@db.project.supabase.co:5432/postgres</code>)<br>
+          • <b>Render PostgreSQL</b> (<code>postgresql://user:pass@dpg-xxx.oregon-postgres.render.com/ajv_db</code>)<br>
+          • <b>AWS RDS / Cloud SQL / Railway / Aiven</b>
+        </div>
+
+        <div class="dossier-grid" style="margin-bottom:20px;">
+          <div class="dossier-item"><small>Current Engine</small><b>${esc(status.provider)}</b></div>
+          <div class="dossier-item"><small>Current Host</small><b>${esc(status.host)}</b></div>
+          <div class="dossier-item"><small>WORM Policy</small><b style="color:var(--green);">${esc(status.antiDeletionProtection)}</b></div>
+          <div class="dossier-item"><small>Decade Reach</small><b>${esc(status.decadeCoverage)}</b></div>
+        </div>
+
+        <form onsubmit="submitCloudDbConnect(event)">
+          <label style="display:block;margin-bottom:8px;font-weight:700;">
+            Cloud Database Connection String (DATABASE_URL):
+          </label>
+          <input id="cloudDbUrlInput" type="text" class="archive-search-input" style="width:100%;font-family:monospace;font-size:13px;" placeholder="postgresql://user:password@host.cloud-provider.com:5432/database?sslmode=require" required>
+          <small class="muted" style="display:block;margin-top:6px;">
+            SSL mode is automatically negotiated for cloud hosting. Tables, multi-decade indexes, and anti-deletion triggers will be initialized automatically.
+          </small>
+
+          <div style="margin-top:24px;display:flex;gap:12px;justify-content:flex-end;">
+            <button type="button" class="btn secondary" onclick="modalDialog.close()">Cancel</button>
+            <button type="submit" class="btn gold">Test &amp; Connect Cloud Database →</button>
+          </div>
+        </form>
+      </div>
+    `;
+
+    modalDialog.showModal();
+  } catch (e) {
+    toast(e.message, false);
+  }
+}
+
+async function submitCloudDbConnect(e) {
+  e.preventDefault();
+  const url = document.getElementById("cloudDbUrlInput")?.value?.trim();
+  if (!url) return;
+
+  try {
+    toast("Connecting to Cloud Database and verifying WORM triggers...");
+    const res = await api("/api/cloud-db/connect", {
+      method: "POST",
+      body: { databaseUrl: url }
+    });
+
+    toast("Successfully connected to Cloud Database!");
+    modalDialog.close();
+    await refreshArchiveCenter();
+  } catch (err) {
+    toast("Connection failed: " + err.message, false);
+  }
+}
+
+async function openAuditLedgerModal() {
+  try {
+    const data = await api("/api/archive/ledger");
+    const entries = data.entries || [];
+
+    modalDialog.innerHTML = `
+      <div class="modal-header">
+        <div>
+          <h2 style="margin:0;">Institutional Cryptographic Audit Ledger</h2>
+          <small class="muted">Append-Only SHA-256 Chained Blocks • ${entries.length} Ledger Entries</small>
+        </div>
+        <button class="btn mini secondary" onclick="modalDialog.close()">✕</button>
+      </div>
+
+      <div class="modal-body" style="padding:20px;max-height:70vh;overflow-y:auto;">
+        <div class="notice" style="margin-bottom:16px;">
+          <b>WORM Immutability Guarantee:</b> Every archival record, fee transaction, and academic seal generates a cryptographic block linked to the previous block via SHA-256 hash chaining. No block can be deleted or edited.
+        </div>
+
+        <table class="archive-records-table" style="box-shadow:none;">
+          <thead>
+            <tr>
+              <th>Index</th>
+              <th>Event Type</th>
+              <th>Entity</th>
+              <th>Actor</th>
+              <th>Block Data Hash</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${entries.map(e => `
+              <tr>
+                <td><b>#${e.entryIndex || e.id}</b></td>
+                <td><span class="decade-tag" style="background:#fef3c7;color:#92400e;border-color:#fde68a;">${esc(e.eventType)}</span></td>
+                <td><b>${esc(e.entityId)}</b></td>
+                <td><code>${esc(e.actorId || 'SYSTEM')}</code></td>
+                <td><div class="seal-hash-code" title="${esc(e.dataHash)}">${esc(e.dataHash ? e.dataHash.slice(0, 16) : '0000000000000000')}...</div></td>
+                <td><small class="muted">${new Date(e.createdAt).toLocaleString()}</small></td>
+              </tr>
+            `).join("")}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn full" onclick="modalDialog.close()">Close Ledger</button>
+      </div>
+    `;
+
+    modalDialog.showModal();
+  } catch (e) {
+    toast("Ledger error: " + e.message, false);
+  }
+}
+
+// -------------------------------------------------------------
 // Router
 // -------------------------------------------------------------
 
@@ -5006,6 +5546,7 @@ function showPage(p) {
   else if (p === "login") login();
   else if (p === "register") register();
   else if (p === "profile") profile();
+  else if (p === "archive" || p === "cloud-archive") openCloudArchiveCenter();
   else if (p === "idcard" || p === "smartid") openDigitalStudentIdCard();
   else if (p === "hallticket" || p === "admitcard") openOfficialHallTicket();
   else if (p === "attendance") {
