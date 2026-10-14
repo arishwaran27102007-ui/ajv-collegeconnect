@@ -75,9 +75,11 @@ function loadJsonDb() {
       if (!jsonDb.attendanceLogs) jsonDb.attendanceLogs = [];
       if (!jsonDb.academicArchives || jsonDb.academicArchives.length === 0) {
         jsonDb.academicArchives = getHistoricalSeedArchives();
+        saveJsonDb();
       }
       if (!jsonDb.auditLedger || jsonDb.auditLedger.length === 0) {
         jsonDb.auditLedger = getHistoricalSeedLedger();
+        saveJsonDb();
       }
       return jsonDb;
     } catch (e) {
@@ -158,7 +160,9 @@ function loadJsonDb() {
     announcements: [
       { id: 1, title: "Semester Assessment Schedule", body: "Internal assessments have been updated. Students can view course-wise grades and credit-weighted CGPA.", createdAt: new Date().toISOString() },
       { id: 2, title: "CollegeConnect Portal Live", body: "Welcome to AJV CollegeConnect 2.0. Academic records and attendance tracking are now active.", createdAt: new Date().toISOString() }
-    ]
+    ],
+    academicArchives: getHistoricalSeedArchives(),
+    auditLedger: getHistoricalSeedLedger()
   };
 
   saveJsonDb();
