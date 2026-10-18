@@ -1,61 +1,457 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="theme-color" content="#081b2f">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="AJV College">
-  <meta name="description" content="AJV CollegeConnect - The secure academic portal for AJV College of Engineering students and staff. View results, ID cards, hall tickets, fee payments, and attendance.">
-  <meta property="og:title" content="AJV College of Engineering | CollegeConnect">
-  <meta property="og:description" content="Secure academic portal for AJV College of Engineering students and staff.">
-  <meta property="og:image" content="/assets/college-logo.png">
-  <meta property="og:type" content="website">
-  <link rel="manifest" href="/manifest.json">
-  <link rel="apple-touch-icon" href="/icons/icon-192.png">
-  <title>AJV College of Engineering | CollegeConnect</title>
-  <link rel="icon" href="/assets/college-logo.png">
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-  <link rel="stylesheet" href="/assets/style.css?v=20261014_cloud_archive">
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "CollegeOrUniversity",
-    "name": "AJV College of Engineering",
-    "url": "https://ajv-collegeconnect.onrender.com",
-    "logo": "https://ajv-collegeconnect.onrender.com/assets/college-logo.png"
-  }
-  </script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>AJV CollegeConnect // 3D Spatial Campus Portal</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="assets/logo.svg" />
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Plus+Jakarta+Sans:wght@400;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <style>
+    :root {
+      --bg: #050814;
+      --glass: rgba(13, 20, 40, 0.72);
+      --border: rgba(0, 242, 254, 0.28);
+      --cyan: #00f2fe;
+      --violet: #a855f7;
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      padding-bottom: 95px;
+    }
+    #campus-3d-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 0;
+    }
+    .hud-top {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(5, 8, 20, 0.85);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .brand { font-family: 'Orbitron', sans-serif; font-weight: 900; font-size: 0.95rem; letter-spacing: 0.05em; }
+    .grad { background: linear-gradient(90deg, var(--cyan), var(--violet)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .live-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.7rem;
+      color: var(--emerald);
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      padding: 4px 10px;
+      border-radius: 99px;
+    }
+    .container {
+      position: relative;
+      z-index: 10;
+      max-width: 980px;
+      margin: 0 auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .cam-bar {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+    .pill {
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      border: 1px solid rgba(255,255,255,0.15);
+      padding: 8px 14px;
+      border-radius: 99px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      white-space: nowrap;
+      cursor: pointer;
+    }
+    .pill.active {
+      background: rgba(0, 242, 254, 0.18);
+      border-color: var(--cyan);
+      color: var(--cyan);
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.25);
+    }
+    .card-3d {
+      background: var(--glass);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 18px 45px rgba(0,0,0,0.55);
+      transform-style: preserve-3d;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+    }
+    .badge {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.68rem;
+      color: var(--cyan);
+      background: rgba(0, 242, 254, 0.12);
+      border: 1px solid rgba(0, 242, 254, 0.3);
+      padding: 3px 9px;
+      border-radius: 99px;
+      margin-bottom: 8px;
+    }
+    h1 { font-family: 'Orbitron', sans-serif; font-size: 1.35rem; margin-bottom: 6px; }
+    .sub { color: var(--muted); font-size: 0.86rem; line-height: 1.5; }
+    .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+    .kpi-val { font-family: 'Orbitron', sans-serif; font-size: 1.55rem; color: var(--cyan); margin: 4px 0; }
+    .row-item {
+      padding: 12px;
+      background: rgba(255,255,255,0.04);
+      border-left: 3px solid var(--cyan);
+      border-radius: 12px;
+      margin-top: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+    .bar-bg { width: 100%; height: 8px; background: rgba(255,255,255,0.1); border-radius: 99px; margin: 8px 0; overflow: hidden; }
+    .bar-fill { height: 100%; background: linear-gradient(90deg, var(--cyan), var(--violet)); }
+    .view-pane { display: none; flex-direction: column; gap: 16px; }
+    .view-pane.active { display: flex; }
+    .bottom-dock {
+      position: fixed;
+      bottom: 12px;
+      left: 12px;
+      right: 12px;
+      max-width: 600px;
+      margin: 0 auto;
+      z-index: 90;
+      background: rgba(10, 15, 32, 0.92);
+      backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 6px;
+      box-shadow: 0 12px 35px rgba(0,0,0,0.75);
+    }
+    .dock-btn {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 0.72rem;
+      font-weight: 600;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+    .dock-btn.active { color: var(--cyan); }
+    .input-box {
+      width: 100%;
+      background: rgba(15, 23, 42, 0.9);
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-top: 8px;
+      font-family: inherit;
+    }
+    .btn-main {
+      background: linear-gradient(135deg, var(--cyan), #4facfe);
+      color: #020617;
+      font-family: 'Orbitron', sans-serif;
+      font-weight: 800;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 12px;
+      margin-top: 12px;
+      width: 100%;
+      cursor: pointer;
+    }
+  </style>
 </head>
-
 <body>
-  <div id="toast"></div>
-  <header class="topbar">
-    <div class="brand" onclick="showPage('home')">
-      <img src="/assets/college-logo.png" class="brand-logo" alt="AJV College Logo">
-      <div>
-        <div class="brand-name">AJV College of Engineering</div>
-        <div class="brand-sub">CollegeConnect • Student &amp; Staff Portal</div>
-      </div>
-    </div>
-    <nav id="nav"></nav>
-    <button id="themeToggleBtn" class="theme-toggle" aria-label="Toggle dark mode" title="Toggle dark mode">🌙</button>
-    <button id="installAppBtn" class="install-app-btn" type="button" hidden>📲 Install App</button>
-  </header>
-  <main id="app"></main>
-  <dialog id="modalDialog"></dialog>
-  <footer>
-    <div>
-      <b>AJV College of Engineering</b>
-      <span>Autonomous Institution • NAAC 'A+' Accredited • Secure Academic Portal</span>
-    </div>
-    <span>&copy; 2026 AJV CollegeConnect</span>
-  </footer>
-  <script src="/assets/app.js?v=20261014_cloud_archive"></script>
-  <script src="/assets/pwa.js?v=20261014_cloud_archive"></script>
-</body>
+  <canvas id="campus-3d-canvas"></canvas>
 
+  <header class="hud-top">
+    <div class="brand">AJV <span class="grad">COLLEGECONNECT 3D</span></div>
+    <span class="live-pill" id="api-status">● 3D CORE ONLINE</span>
+  </header>
+
+  <main class="container">
+    <div class="cam-bar">
+      <button class="pill active" onclick="flyCam(0, 2.5, 9, this)">◈ 3D Core Orbit</button>
+      <button class="pill" onclick="flyCam(-4, 2, 3.2, this)">🏛️ Academic Block</button>
+      <button class="pill" onclick="flyCam(4, 2, 3.2, this)">🤖 AICTE IDEA Lab</button>
+      <button class="pill" onclick="flyCam(-3.2, 2.2, 6, this)">📚 Library</button>
+      <button class="pill" onclick="flyCam(3.2, 2.4, 6, this)">🏢 BH2 Hostel</button>
+      <button class="pill" onclick="flyCam(0, 11, 3.5, this)">🛰️ Aerial Map</button>
+    </div>
+
+    <!-- PANE 1: 3D HUB -->
+    <section id="pane-hub" class="view-pane active">
+      <div class="card-3d">
+        <span class="badge">B.TECH CS & IT // SRIT SPATIAL TWIN</span>
+        <h1>Welcome back, <span class="grad">Arishwaran J (AJ)</span></h1>
+        <p class="sub">Interactive 3D WebGL Campus Portal active. Tap the camera pills above or switch tabs below to fly across campus nodes.</p>
+      </div>
+
+      <div class="grid-4">
+        <div class="card-3d">
+          <span class="badge">ATTENDANCE</span>
+          <div class="kpi-val">92.4%</div>
+          <p class="sub" style="color:var(--emerald)">▲ Safe Margin (+6)</p>
+        </div>
+        <div class="card-3d">
+          <span class="badge">CGPA INDEX</span>
+          <div class="kpi-val">8.94</div>
+          <p class="sub">Top 5% CS & IT</p>
+        </div>
+        <div class="card-3d">
+          <span class="badge">IDEA LAB</span>
+          <div class="kpi-val">ACTIVE</div>
+          <p class="sub">ESP32 Radar Lock</p>
+        </div>
+        <div class="card-3d">
+          <span class="badge">HOSTEL GATE</span>
+          <div class="kpi-val">BH2 // IN</div>
+          <p class="sub" style="color:var(--emerald)">Biometric Synced</p>
+        </div>
+      </div>
+
+      <div class="card-3d">
+        <span class="badge">TODAY'S SPATIAL TIMETABLE</span>
+        <div class="row-item">
+          <div><strong>Algorithms & Data Structures</strong><div class="sub">09:00 - 09:50 • LH-201</div></div>
+          <span class="badge">LECTURE</span>
+        </div>
+        <div class="row-item">
+          <div><strong>Embedded Radar & IoT Lab</strong><div class="sub">10:00 - 11:40 • AICTE IDEA Lab</div></div>
+          <span class="badge">3D LAB</span>
+        </div>
+        <div class="row-item">
+          <div><strong>Full-Stack Next.js / Docker</strong><div class="sub">01:30 - 03:10 • IT-Lab 1</div></div>
+          <span class="badge">STUDIO</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- PANE 2: ATTENDANCE -->
+    <section id="pane-att" class="view-pane">
+      <div class="card-3d">
+        <h1>3D Subject <span class="grad">Attendance</span></h1>
+        <div style="margin-top:14px;">
+          <strong>CS3401 — Algorithms & Data Structures</strong>
+          <div class="bar-bg"><div class="bar-fill" style="width:93.3%"></div></div>
+          <div class="sub">93.3% (42/45) • Safe Bunk Margin: +11 classes</div>
+        </div>
+        <div style="margin-top:16px;">
+          <strong>IT3502 — Full-Stack Web Engineering</strong>
+          <div class="bar-bg"><div class="bar-fill" style="width:95.1%"></div></div>
+          <div class="sub">95.1% (39/41) • Safe Bunk Margin: +11 classes</div>
+        </div>
+        <div style="margin-top:16px;">
+          <strong>EC3391 — Embedded Systems & IoT Architecture</strong>
+          <div class="bar-bg"><div class="bar-fill" style="width:95.0%"></div></div>
+          <div class="sub">95.0% (38/40) • Safe Bunk Margin: +10 classes</div>
+        </div>
+        <div style="margin-top:16px;">
+          <strong>CS3551 — Distributed & Cloud Computing</strong>
+          <div class="bar-bg"><div class="bar-fill" style="width:87.5%"></div></div>
+          <div class="sub">87.5% (35/40) • Safe Bunk Margin: +6 classes</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PANE 3: TIMETABLE -->
+    <section id="pane-tt" class="view-pane">
+      <div class="card-3d">
+        <h1>Weekly <span class="grad">Timetable Matrix</span></h1>
+        <div class="row-item">
+          <div><strong>Monday</strong><div class="sub">CS3401 • EC3391 IDEA Lab • IT3502 Studio</div></div>
+          <span class="badge">6 HRS</span>
+        </div>
+        <div class="row-item">
+          <div><strong>Tuesday</strong><div class="sub">CS3551 Cloud • MA3354 Discrete Math • Open Project</div></div>
+          <span class="badge">6 HRS</span>
+        </div>
+        <div class="row-item">
+          <div><strong>Wednesday</strong><div class="sub">IT3502 Full-Stack • CPU Scheduling C/C++ Lab</div></div>
+          <span class="badge">5 HRS</span>
+        </div>
+        <div class="row-item">
+          <div><strong>Thursday</strong><div class="sub">EC3391 Embedded IoT • System Design Workshop</div></div>
+          <span class="badge">5 HRS</span>
+        </div>
+        <div class="row-item">
+          <div><strong>Friday</strong><div class="sub">MA3354 Graph Theory • Research & Prototype Review</div></div>
+          <span class="badge">4 HRS</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- PANE 4: NOTICES & OD -->
+    <section id="pane-od" class="view-pane">
+      <div class="card-3d">
+        <h1>Submit <span class="grad">OD / Leave Request</span></h1>
+        <form id="od-form">
+          <input type="text" id="od-title" class="input-box" placeholder="Category (e.g., AICTE IDEA Lab / Hackathon OD)" required />
+          <input type="text" id="od-desc" class="input-box" placeholder="Reason / Prototype Event Details" required />
+          <button type="submit" class="btn-main">TRANSMIT TO HOD</button>
+        </form>
+      </div>
+
+      <div class="card-3d">
+        <span class="badge">ACTIVE OD & CIRCULARS</span>
+        <div id="od-list">
+          <div class="row-item">
+            <div><strong>AICTE IDEA Lab Prototype Work</strong><div class="sub">Ultrasonic Radar 3D Bracket & ESP32 Testing</div></div>
+            <span class="badge">APPROVED</span>
+          </div>
+          <div class="row-item">
+            <div><strong>Techgium / Embedded Threat Modeling</strong><div class="sub">Research Symposium OD Request</div></div>
+            <span class="badge">PENDING</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="bottom-dock">
+    <button class="dock-btn active" onclick="openPane('hub', 0, 2.5, 9, this)"><span>◈</span>3D Hub</button>
+    <button class="dock-btn" onclick="openPane('att', -4, 3, 6, this)"><span>◎</span>Attendance</button>
+    <button class="dock-btn" onclick="openPane('tt', 4, 3, 6, this)"><span>▤</span>Timetable</button>
+    <button class="dock-btn" onclick="openPane('od', 0, 6, 6, this)"><span>✦</span>OD & Notices</button>
+  </nav>
+
+  <script>
+    const camTarget = { x: 0, y: 2.5, z: 9 };
+    const canvas = document.getElementById('campus-3d-canvas');
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.FogExp2(0x050814, 0.038);
+    const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 150);
+    camera.position.set(0, 2.5, 9);
+
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    scene.add(new THREE.AmbientLight(0x63b3ed, 0.8));
+    const p1 = new THREE.PointLight(0x00f2fe, 2.5, 30); p1.position.set(5, 6, 5); scene.add(p1);
+    const p2 = new THREE.PointLight(0xa855f7, 2.0, 30); p2.position.set(-5, 4, -4); scene.add(p2);
+
+    const grid = new THREE.GridHelper(44, 44, 0x00f2fe, 0x1e293b);
+    grid.position.y = -1.6;
+    scene.add(grid);
+
+    const coreGroup = new THREE.Group();
+    const coreMesh = new THREE.Mesh(
+      new THREE.IcosahedronGeometry(1.15, 1),
+      new THREE.MeshStandardMaterial({ color: 0x00f2fe, emissive: 0x0ea5e9, emissiveIntensity: 0.5, wireframe: true })
+    );
+    const innerMesh = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.65, 0),
+      new THREE.MeshStandardMaterial({ color: 0xa855f7, emissive: 0x7e22ce, emissiveIntensity: 0.6 })
+    );
+    const ringMesh = new THREE.Mesh(
+      new THREE.TorusGeometry(2.05, 0.03, 16, 90),
+      new THREE.MeshBasicMaterial({ color: 0x00f2fe })
+    );
+    ringMesh.rotation.x = Math.PI / 2.2;
+    coreGroup.add(coreMesh, innerMesh, ringMesh);
+    coreGroup.position.set(0, 0.7, 0);
+    scene.add(coreGroup);
+
+    [
+      [-3.8, -0.2, -2.2, 0x00f2fe],
+      [3.8, -0.4, -2.0, 0xa855f7],
+      [-3.2, -0.5, 2.4, 0x38bdf8],
+      [3.2, -0.1, 2.5, 0x10b981]
+    ].forEach(([x, y, z, col]) => {
+      const geo = new THREE.BoxGeometry(1.3, 2.6, 1.3);
+      const mesh = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: col, transparent: true, opacity: 0.28 }));
+      mesh.position.set(x, y, z);
+      mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), new THREE.LineBasicMaterial({ color: col })));
+      scene.add(mesh);
+    });
+
+    const starPos = new Float32Array(500 * 3);
+    for (let i = 0; i < 500 * 3; i++) starPos[i] = (Math.random() - 0.5) * 42;
+    const starGeo = new THREE.BufferGeometry();
+    starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+    const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0x67e8f9, size: 0.06 }));
+    scene.add(stars);
+
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+      coreMesh.rotation.y = t * 0.5;
+      coreMesh.rotation.x = t * 0.3;
+      innerMesh.rotation.y = -t * 0.8;
+      ringMesh.rotation.z = t * 0.4;
+      coreGroup.position.y = 0.7 + Math.sin(t * 1.8) * 0.16;
+      stars.rotation.y = t * 0.03;
+
+      camera.position.x += (camTarget.x - camera.position.x) * 0.06;
+      camera.position.y += (camTarget.y - camera.position.y) * 0.06;
+      camera.position.z += (camTarget.z - camera.position.z) * 0.06;
+      camera.lookAt(0, 0.5, 0);
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    window.flyCam = function(x, y, z, btn) {
+      camTarget.x = x; camTarget.y = y; camTarget.z = z;
+      document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+    };
+
+    window.openPane = function(id, x, y, z, btn) {
+      document.querySelectorAll('.view-pane').forEach(p => p.classList.remove('active'));
+      document.getElementById('pane-' + id).classList.add('active');
+      document.querySelectorAll('.dock-btn').forEach(b => b.classList.remove('active'));
+      if (btn) btn.classList.add('active');
+      camTarget.x = x; camTarget.y = y; camTarget.z = z;
+    };
+
+    document.getElementById('od-form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = document.getElementById('od-title').value;
+      const desc = document.getElementById('od-desc').value;
+      const item = document.createElement('div');
+      item.className = 'row-item';
+      item.innerHTML = `<div><strong>${title}</strong><div class="sub">${desc}</div></div><span class="badge">SUBMITTED</span>`;
+      document.getElementById('od-list').prepend(item);
+      e.target.reset();
+    });
+
+    fetch('/api/health').then(r => {
+      if (r.ok) document.getElementById('api-status').textContent = '● BACKEND SYNCED';
+    }).catch(() => {});
+  </script>
+</body>
 </html>
